@@ -307,6 +307,8 @@ export default function InstantShareProvider({ children }) {
     const MAX_SIZE = 100 * 1024 * 1024;
     const oversizedFiles = selectedFiles.filter(f => f.size > MAX_SIZE);
 
+
+
     if (oversizedFiles.length > 0) {
       showToast(
           `Some files exceed 100MB: ${oversizedFiles.map(f => f.name).join(', ')}`,
