@@ -117,6 +117,18 @@ export default function InstantShareProvider({ children }) {
     }
   }, []);
 
+  useEffect(() => {
+    const handleWebSocketError = (event) => {
+      showToast(event.detail.message, "error", 5000);
+    };
+
+    window.addEventListener('websocket-error', handleWebSocketError);
+
+    return () => {
+      window.removeEventListener('websocket-error', handleWebSocketError);
+    };
+  }, [showToast]);
+
   const startCountdown = useCallback(() => {
     setTimeLeft(600);
     if (countdownRef.current) clearInterval(countdownRef.current);

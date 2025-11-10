@@ -9,8 +9,7 @@ function Nav() {
             </Link>
             <Link
                 href="/"
-                className="text-sm text-[#999] px-4 py-2 hover:text-white transition"
-            >
+                className="text-sm text-[#999] px-4 py-2 hover:text-white transition">
                 Home
             </Link>
         </nav>

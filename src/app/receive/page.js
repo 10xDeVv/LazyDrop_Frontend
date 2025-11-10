@@ -207,6 +207,28 @@ export default function ReceivePage() {
                                 />
                             </div>
                         </div>
+                        <div className="mt-8 p-4 bg-[#1a1a1a] rounded border border-[#222]">
+                            <div className="flex items-center justify-center gap-3 mb-2">
+                                <div className="relative">
+                                    <div className="w-3 h-3 bg-[#00ff88] rounded-full animate-pulse"></div>
+                                    <div className="absolute inset-0 w-3 h-3 bg-[#00ff88] rounded-full animate-ping"></div>
+                                </div>
+                                <span className="text-sm text-[#666]">Waiting for connection...</span>
+                            </div>
+
+                            <details className="mt-3">
+                                <summary className="text-xs text-[#666] cursor-pointer hover:text-white">
+                                    Connection not working?
+                                </summary>
+                                <div className="mt-2 text-xs text-[#999] text-left space-y-1">
+                                    <p>• Refresh both devices</p>
+                                    <p>• Check internet connection</p>
+                                    <p>• Try mobile data instead of WiFi</p>
+                                    <p>• Disable VPN if active</p>
+                                    <p>• Some corporate networks block connections</p>
+                                </div>
+                            </details>
+                        </div>
                     </div>
                 )}
 

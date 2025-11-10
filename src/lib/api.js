@@ -3,6 +3,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 class ApiService {
     constructor() {
         this.baseUrl = API_BASE_URL;
+        console.log(this.baseUrl);
     }
 
     async request(endpoint, options = {}) {
