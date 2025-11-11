@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fontsource/crimson-pro": "^5.2.8",
+    "@fontsource/inter": "^5.2.8",
     "@stomp/stompjs": "^7.2.1",
     "@stripe/stripe-js": "^8.3.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",

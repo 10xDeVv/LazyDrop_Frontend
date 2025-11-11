@@ -1,16 +1,18 @@
+// app/layout.js
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import InstantShareProvider from "../context/InstantShareContext";
 import SessionExpiredOverlay from "./SessionExpiredOverlay";
-import {UserProvider} from "@/context/UserContext";
+import { UserProvider } from "@/context/UserContext";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
 });
+
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
 });
 
 export const metadata = {
@@ -20,8 +22,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
     return (
-        <html lang="en">
-        <body>
+        <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+        <body className="antialiased">
         <UserProvider>
             <InstantShareProvider>
                 {children}
