@@ -1,123 +1,127 @@
-import {Client} from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+// src/lib/ws.js
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL =
+    (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080").replace(/\/+$/, "");
+
+const isDev = process.env.NODE_ENV !== "production";
 
 export class WebSocketService {
     constructor() {
         this.client = null;
         this.sub = null;
         this.listeners = new Map();
-        this.connectionAttempts = 0;
+        this.sessionId = null;
     }
 
-    connect(roomId) {
-        if (this.client?.active) {
-            return;
-        }
+    connect(sessionId) {
+        if (!sessionId) throw new Error("sessionId is required for WS connect");
 
-        this.connectionAttempts++;
+        // If already connected to same session, no-op
+        if (this.client?.active && this.sessionId === sessionId) return;
+
+        // If connected to another session, reset first
+        this.disconnect();
+
+        this.sessionId = sessionId;
+
         this.client = new Client({
-            webSocketFactory: () => new SockJS(`${API_URL}/ws`),
+            webSocketFactory: () => {
+                // NOTE: SockJS will include cookies automatically if allowed by CORS (Access-Control-Allow-Credentials)
+                return new SockJS(`${API_URL}/ws`);
+            },
 
-            reconnectDelay: 5000,
-            heartbeatIncoming: 10000,
-            heartbeatOutgoing: 10000,
+            reconnectDelay: 2000, // simple reconnect
+            heartbeatIncoming: 25000,
+            heartbeatOutgoing: 25000,
             connectionTimeout: 15000,
 
+            debug: (msg) => {
+                if (isDev) console.log("[stomp]", msg);
+            },
 
-            onConnect: (frame) => {
-                this.connectionAttempts = 0;
+            onConnect: () => {
+                if (isDev) console.log("✅ WS connected");
+
+                const destination = `/topic/session/${sessionId}`;
 
                 try {
-                    this.sub = this.client.subscribe(`/topic/room/${roomId}`, (frame) => {
-                        const msg = JSON.parse(frame.body);
-                        this.handleMessage(msg);
+                    this.sub = this.client.subscribe(destination, (frame) => {
+                        try {
+                            const msg = JSON.parse(frame.body);
+                            this.handleMessage(msg);
+                        } catch (e) {
+                            if (isDev) console.warn("Bad WS message:", frame.body);
+                        }
                     });
                 } catch (e) {
-                    this.notifyError('Failed to join room. Please refresh.');
+                    this.notifyError("Failed to subscribe. Refresh and try again.");
                 }
             },
 
-            onStompError: (frame) => {
-                this.notifyError('Connection error. Please refresh and try again.');
+            onStompError: () => {
+                this.notifyError("WebSocket error. Refresh and try again.");
             },
 
-            onWebSocketError: (error) => {
-                this.notifyError('Network connection failed. Check your internet.');
+            onWebSocketClose: (evt) => {
+                if (isDev) console.log("🔌 WS closed", evt?.code);
+                // Don’t spam toast here—reconnect will happen.
             },
 
-            onWebSocketClose: (event) => {
-                if (event.code === 1006) {
-                    console.warn('⚠️ Abnormal closure - network issue or firewall');
-                    this.notifyError('Connection lost. This might be due to your network or firewall.');
-                } else if (event.code === 1008) {
-                    console.error('❌ Policy violation');
-                    this.notifyError('Connection blocked by security policy.');
-                } else if (event.code === 1011) {
-                    console.error('❌ Server error');
-                    this.notifyError('Server error. Please try again.');
-                }
-            },
-
-            onDisconnect: () => {
-                if (isDev) console.log('🔌 Disconnected');
+            onWebSocketError: () => {
+                this.notifyError("Network issue. WebSocket connection failed.");
             },
         });
 
-        try {
-            this.client.activate();
-        } catch (error) {
-            this.notifyError('Failed to start connection. Please refresh.');
-        }
+        this.client.activate();
     }
 
-    handleMessage(message)
-    {
-        const {type, payload} = message || {};
+    handleMessage(message) {
+        const { type, payload } = message || {};
+        if (!type) return;
         const handlers = this.listeners.get(type) || [];
-        handlers.forEach((h) => h(payload));
+        handlers.forEach((h) => {
+            try {
+                h(payload);
+            } catch (e) {
+                if (isDev) console.error("WS handler error:", e);
+            }
+        });
     }
 
-    subscribe(type, handler)
-    {
+    subscribe(type, handler) {
         if (!this.listeners.has(type)) this.listeners.set(type, []);
         this.listeners.get(type).push(handler);
+
         return () => {
             const arr = this.listeners.get(type) || [];
             this.listeners.set(type, arr.filter((h) => h !== handler));
         };
     }
 
-    send(destination, data)
-    {
-        if (this.client?.connected) {
-            this.client.publish({
-                destination,
-                body: JSON.stringify(data),
-            });
-        } else {
-        }
-    }
+    disconnect() {
+        try {
+            if (this.sub) this.sub.unsubscribe();
+        } catch {}
 
-    disconnect()
-    {
-        if (this.sub) this.sub.unsubscribe();
-
-        if (this.client) this.client.deactivate();
+        try {
+            if (this.client) this.client.deactivate();
+        } catch {}
 
         this.client = null;
         this.sub = null;
         this.listeners.clear();
-        this.connectionAttempts = 0;
+        this.sessionId = null;
     }
 
-    notifyError(message)
-    {
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('websocket-error', {
-                detail: {message}
-            }));
+    notifyError(message) {
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(
+                new CustomEvent("websocket-error", { detail: { message } })
+            );
         }
     }
 }
+
+export const ws = new WebSocketService();

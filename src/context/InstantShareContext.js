@@ -9,9 +9,9 @@ import React, {
   useCallback,
 } from "react";
 
-import {api} from "@/lib/api";
-import {WebSocketService} from "@/lib/websocket";
-import QRCode from "qrcode";
+import { api } from "@/lib/api";
+import { WebSocketService } from "@/lib/websocket";
+import { CheckCircle, XCircle, Info } from "lucide-react";
 
 class EventBus {
   constructor() {
@@ -29,10 +29,7 @@ class EventBus {
   }
 }
 
-const ToastCtx = createContext();
-export function useToast() {
-  return useContext(ToastCtx);
-}
+const ToastCtx = createContext(null);
 
 function Toasts({ toasts }) {
   return (
@@ -40,20 +37,62 @@ function Toasts({ toasts }) {
           id="toastContainer"
           aria-live="polite"
           aria-atomic="true"
-          className="fixed top-8 right-8 z-[1000] flex flex-col gap-4"
+          className="fixed top-24 right-4 sm:right-8 z-[3000] flex flex-col gap-3 pointer-events-none"
       >
         {toasts.map((t) => (
             <div
                 key={t.id}
-                className={`flex items-center gap-2 bg-[#111] text-white border border-[#222] rounded p-4 min-w-[280px] text-sm animate-[slideIn_0.3s_ease_forwards] ${
-                    t.type === "success" ? "border-l-2" : "border-l-2"
-                }`}
+                className={`
+            pointer-events-auto flex items-center gap-3 p-4 min-w-[300px] max-w-sm
+            bg-[#16181D]/90 backdrop-blur-md border rounded-xl shadow-2xl
+            animate-in slide-in-from-right duration-300
+          `}
                 style={{
-                  borderLeftColor: t.type === "success" ? "#00ff88" : "#ff4757",
+                  borderColor:
+                      t.type === "success"
+                          ? "rgba(223, 255, 0, 0.3)"
+                          : t.type === "error"
+                              ? "rgba(239, 68, 68, 0.3)"
+                              : "rgba(255, 255, 255, 0.1)",
                 }}
             >
-              <span>{t.type === "success" ? "✓" : "✕"}</span>
-              <span className="text-white/90">{t.message}</span>
+              <div
+                  className={`
+              shrink-0 w-8 h-8 rounded-full flex items-center justify-center
+              ${
+                      t.type === "success"
+                          ? "bg-[#DFFF00]/10 text-[#DFFF00]"
+                          : t.type === "error"
+                              ? "bg-red-500/10 text-red-500"
+                              : "bg-white/10 text-white"
+                  }
+            `}
+              >
+                {t.type === "success" && <CheckCircle size={16} />}
+                {t.type === "error" && <XCircle size={16} />}
+                {t.type === "info" && <Info size={16} />}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p
+                    className={`text-sm font-bold ${
+                        t.type === "success"
+                            ? "text-[#DFFF00]"
+                            : t.type === "error"
+                                ? "text-red-400"
+                                : "text-white"
+                    }`}
+                >
+                  {t.type === "success"
+                      ? "Success"
+                      : t.type === "error"
+                          ? "Error"
+                          : "Info"}
+                </p>
+                <p className="text-sm text-gray-400 mt-0.5 truncate">{t.message}</p>
+              </div>
+
+              <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent w-full opacity-50" />
             </div>
         ))}
       </div>
@@ -66,19 +105,49 @@ export function useApp() {
 }
 
 export default function InstantShareProvider({ children }) {
-  const [currentSession, setCurrentSession] = useState(null);
-  const [autoDownload, setAutoDownload] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(600);
-  const [files, setFiles] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
+    const [currentSession, setCurrentSession] = useState(null);
+    const [myParticipantId, setMyParticipantId] = useState(null);
+    const myParticipantIdRef = useRef(null);
 
-  const countdownRef = useRef(null);
-  const busRef = useRef(new EventBus());
-  const wsRef = useRef(null);
-  const sessionIdRef = useRef(null);
-  const unsubscribersRef = useRef([]);
+    // Keep ref in sync
+    useEffect(() => {
+        myParticipantIdRef.current = myParticipantId;
+    }, [myParticipantId]);
+    const [myRole, setMyRole] = useState(null); // "OWNER" | "PARTICIPANT"
 
+    // Data State
+    const [isGuest, setIsGuest] = useState(false); // Driven by 403 response
+    const [files, setFiles] = useState([]);
+    const [notes, setNotes] = useState([]);
+    const [timeLeft, setTimeLeft] = useState(600);
+    const [isConnected, setIsConnected] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // Refs
+    const wsRef = useRef(null);
+    const busRef = useRef(new EventBus());
+    const unsubscribersRef = useRef([]);
+    const countdownRef = useRef(null);
+    const isLeavingRef = useRef(false);
+
+    const [participants, setParticipants] = useState([]);
+    const hasPeer = useMemo(
+        () => participants.some((p) => p.role === "PEER"),
+        [participants]
+    );
+
+
+    const [autoDownload, setAutoDownload] = useState(false);
+
+    // ---------- helpers ----------
+    const normalizeCode = (c) => (c || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+    const withHyphen = (c) => {
+        const n = normalizeCode(c);
+        return n.length === 8 ? `${n.slice(0, 4)}-${n.slice(4)}` : n;
+    };
+
+  // ---------- toast ----------
   const [toasts, setToasts] = useState([]);
   const showToast = useCallback((message, type = "success", duration = 3000) => {
     const id = Math.random().toString(36).slice(2);
@@ -88,17 +157,12 @@ export default function InstantShareProvider({ children }) {
     }, duration);
   }, []);
 
+  // ---------- formatters ----------
   const formatTime = useCallback((seconds) => {
     const m = Math.floor(seconds / 60);
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   }, []);
-
-  const normalizeCode = (c) => (c || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  const withHyphen = (c) => {
-    const n = normalizeCode(c);
-    return n.length === 6 ? `${n.slice(0,3)}-${n.slice(3)}` : n;
-  };
 
   const formatFileSize = useCallback((bytes) => {
     const units = ["B", "KB", "MB", "GB"];
@@ -111,27 +175,22 @@ export default function InstantShareProvider({ children }) {
     return `${size.toFixed(1)} ${units[i]}`;
   }, []);
 
-  useEffect(() => {
-    if (!sessionIdRef.current) {
-      sessionIdRef.current = `client_${Math.random().toString(36).slice(2)}`;
-    }
-  }, []);
-
+  // ---------- global ws error listener ----------
   useEffect(() => {
     const handleWebSocketError = (event) => {
-      showToast(event.detail.message, "error", 5000);
+      showToast(event?.detail?.message || "WebSocket error", "error", 5000);
     };
-
-    window.addEventListener('websocket-error', handleWebSocketError);
-
-    return () => {
-      window.removeEventListener('websocket-error', handleWebSocketError);
-    };
+    window.addEventListener("websocket-error", handleWebSocketError);
+    return () => window.removeEventListener("websocket-error", handleWebSocketError);
   }, [showToast]);
 
-  const startCountdown = useCallback(() => {
-    setTimeLeft(600);
+  // ---------- countdown ----------
+  const startCountdown = useCallback((initialSeconds) => {
+    const start = typeof initialSeconds === "number" ? Math.max(0, initialSeconds) : 600;
+
+    setTimeLeft(start);
     if (countdownRef.current) clearInterval(countdownRef.current);
+
     countdownRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
@@ -144,303 +203,672 @@ export default function InstantShareProvider({ children }) {
     }, 1000);
   }, []);
 
+    const rehydrateSession = useCallback(async (code) => {
+        try {
+            setLoading(true);
+            cleanupWebSocketSubscriptions();
+
+            // A. Resolve Code -> Session UUID
+            // Assuming api.getSessionByCode returns { id, code, ownerId, ... }
+            const sessionData = await api.getSessionByCode(code);
+
+            // B. Join (Idempotent - refreshes participation)
+            await api.joinSessionById(sessionData.id);
+
+            // C. Determine Ownership (Check against current user or response flag)
+            // For MVP, if we successfully fetched private session data, we are in.
+            //Ideally backend returns "role": "OWNER" in participant list
+
+            // D. Setup State
+            setCurrentSession({
+                id: sessionData.id,
+                code: sessionData.code,
+                codeDisplay: withHyphen(sessionData.code),
+                ownerId: sessionData.ownerId,
+                qrCodeData: null, // Can regenerate or fetch
+                createdAt: Date.now(), // approximation
+            });
+
+            setIsConnected(true);
+
+            // E. Connect WebSocket
+            connectWebSocket(sessionData.id);
+
+            // F. Fetch existing notes/files
+            const existingFiles = await api.getFiles(sessionData.id); // You need this endpoint
+            const existingNotes = await api.getNotes(sessionData.id); // You need this endpoint
+
+            setFiles(existingFiles.map(f => ({...f, status: 'uploaded', progress: 100})));
+            setNotes(existingNotes);
+
+        } catch (err) {
+            console.error("Rehydration failed:", err);
+            showToast("Session not found or expired", "error");
+            // Don't redirect immediately, let UI show error state
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+
+    const sendSessionNote = useCallback(async (content) => {
+        if (!currentSession?.id) return;
+
+        const clientNoteId = `c_${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`;
+
+        setNotes(prev => [...prev, {
+            id: clientNoteId,
+            senderId: myParticipantId,
+            content,
+            createdAt: new Date().toISOString(),
+            isOptimistic: true
+        }]);
+
+        try {
+            const real = await api.createNote(currentSession.id, content, clientNoteId); // returns { id, senderId, content, createdAt }
+
+            setNotes(prev => prev.map(n =>
+                n.id === clientNoteId ? { ...real, isOptimistic: false } : n
+            ));
+        } catch (err) {
+            setNotes(prev => prev.filter(n => n.id !== clientNoteId));
+            if (err?.status === 403) setIsGuest(true);
+            showToast("Failed to send note", "error");
+        }
+    }, [currentSession, myParticipantId, showToast]);
+
+    const endSessionForEveryone = useCallback(async () => {
+        if (!currentSession?.id) return;
+
+        try {
+            // tell backend "close this session"
+            await api.endSession(currentSession.id);
+            // backend will broadcast DROP_SESSION_CLOSED; your WS handler hardReset() will run
+        } catch (err) {
+            console.error("endSession failed:", err);
+            showToast("Failed to end session", "error");
+            // still allow local cleanup if you want:
+            // await endSession();
+        }
+    }, [currentSession, showToast]);
+
+    const hardReset = useCallback(() => {
+        setCurrentSession(null);
+        setFiles([]);
+        setNotes([]);
+        setParticipants([]);
+        setIsConnected(false);
+
+        // 2. Emit event so the Overlay shows up
+        busRef.current.emit("sessionClosed");
+        // ... cleanup logic ...
+        // if (typeof window !== 'undefined') window.location.href = '/';
+    }, []);
+
+  // ---------- ws subscriptions cleanup ----------
   const cleanupWebSocketSubscriptions = useCallback(() => {
-    unsubscribersRef.current.forEach(unsub => {
+    unsubscribersRef.current.forEach((unsub) => {
       try {
-        unsub();
+        unsub?.();
       } catch (e) {
-        console.error('Error unsubscribing:', e);
+        console.error("Error unsubscribing:", e);
       }
     });
     unsubscribersRef.current = [];
   }, []);
 
-  const createPairing = useCallback(async () => {
-    try {
-      setLoading(true);
+  // ---------- leave room ----------
+  const endSession = useCallback(async () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
 
       cleanupWebSocketSubscriptions();
 
-      const response = await api.createRoom();
+      if (wsRef.current) {
+          try {
+              wsRef.current.disconnect();
+          } catch (e) {
+              console.error("Failed to disconnect:", e);
+          }
+          wsRef.current = null;
+      }
 
-      const normalized = normalizeCode(response.code);
+      setCurrentSession(null);
+      setMyParticipantId(null);
+      setAutoDownload(false);
+      setTimeLeft(600);
+      setFiles([]);
+      setNotes([]);
+      setParticipants([]);
+      setIsConnected(false);
+  }, [cleanupWebSocketSubscriptions]);
+
+    const leaveRoom = useCallback(async () => {
+        if (!currentSession?.id) return;
+
+        isLeavingRef.current = true;
+        const sessionId = currentSession.id;
+
+        try {
+
+            await api.leaveSession(sessionId);
+        } catch (err) {
+            console.warn("Backend leave failed:", err);
+        } finally {
+            cleanupWebSocketSubscriptions();
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            if (wsRef.current) {
+                wsRef.current.disconnect();
+                wsRef.current = null;
+            }
+
+            if (typeof window !== 'undefined') {
+                window.location.href = '/';
+            }
+
+            setCurrentSession(null);
+            setFiles([]);
+            setNotes([]);
+            setIsConnected(false);
+
+            // Keep the guard active for a bit to prevent any late-firing effects
+            setTimeout(() => { isLeavingRef.current = false; }, 2000);
+        }
+    }, [currentSession, endSession, showToast]);
+
+  const resetSession = endSession;
+
+    const upsertParticipant = useCallback((p) => {
+        if (!p?.participantId) return;
+        setParticipants((prev) => {
+            const exists = prev.some((x) => x.participantId === p.participantId);
+            if (exists) return prev.map((x) => (x.participantId === p.participantId ? p : x));
+            return [...prev, p];
+        });
+    }, []);
+
+    const removeParticipant = useCallback((participantId) => {
+        if (!participantId) return;
+        setParticipants((prev) => prev.filter((p) => p.participantId !== participantId));
+    }, []);
+
+
+    // ---------- WS wiring helper ----------
+  const connectWebSocket = useCallback(
+      (sessionId) => {
+          if (wsRef.current?.sessionId === sessionId) return;
+
+        wsRef.current = new WebSocketService();
+        wsRef.current.connect(sessionId);
+
+
+
+        const unsubPeerJoined = wsRef.current.subscribe("PEER_JOINED", (payload) => {
+            upsertParticipant({
+                participantId: payload.participantId,
+                userId: payload.userId,
+                role: payload.role, // "OWNER" or "PEER"
+                displayName: payload.displayName,
+                guest: payload.guest,
+            });
+
+            if (payload.role === "PEER") {
+                showToast("Peer connected!");
+            }
+        });
+        unsubscribersRef.current.push(unsubPeerJoined);
+
+        const unsubPeerLeft = wsRef.current.subscribe("PEER_LEFT", (payload) => {
+            removeParticipant(payload.participantId);
+            showToast("Peer left", "info");
+        });
+        unsubscribersRef.current.push(unsubPeerLeft);
+
+        const unsubFileUploaded = wsRef.current.subscribe("FILE_UPLOADED", (payload) => {
+            const serverId = payload.fileId;
+            const isMine = payload.uploaderId === myParticipantIdRef.current;
+
+            setFiles(prev => {
+                if (prev.some(f => f.serverFileId === serverId || f.id === serverId)) return prev;
+
+
+                const matchingLocalFile = prev.find(f =>
+                    f.status === 'uploading' &&
+                    f.name === payload.originalName &&
+                    f.size === payload.sizeBytes
+                );
+
+                if (matchingLocalFile) {
+                    return prev.map(f => f.id === matchingLocalFile.id ? {
+                        id: serverId,
+                        serverFileId: serverId,
+                        name: payload.originalName,
+                        size: payload.sizeBytes,
+                        createdAt: payload.createdAt,
+                        status: "uploaded",
+                        progress: 100,
+                        downloadedByMe: false,
+                    } : f);
+                }
+
+                return [...prev, {
+                    id: serverId,
+                    serverFileId: serverId,
+                    name: payload.originalName,
+                    size: payload.sizeBytes,
+                    createdAt: payload.createdAt,
+                    status: "uploaded",
+                    progress: 100,
+                    downloadedByMe: false,
+                }];
+            });
+
+            if (!isMine) {
+                showToast(`Received ${payload.originalName}`);
+            }
+        });
+        unsubscribersRef.current.push(unsubFileUploaded);
+
+        const unsubFileDownloaded = wsRef.current.subscribe("FILE_DOWNLOADED", (payload) => {
+          const id = payload.fileId || payload.id;
+
+            setFiles(prev => prev.map(f => f.id === id ? { ...f, downloadedByMe: true } : f));
+
+        });
+        unsubscribersRef.current.push(unsubFileDownloaded);
+
+        const unsubExpired = wsRef.current.subscribe("DROP_SESSION_EXPIRED", () => {
+          showToast("Session expired", "error");
+          hardReset();
+        });
+        unsubscribersRef.current.push(unsubExpired);
+
+          const unsubNotes = wsRef.current.subscribe("SESSION_NOTE_CREATED", (payload) => {
+              const newNote = {
+                  id: payload.noteId,          // ✅ map noteId -> id
+                  senderId: payload.senderId,  // participantId
+                  content: payload.content,
+                  createdAt: payload.createdAt,
+              };
+
+              setNotes(prev => {
+                  const hasOptimistic = prev.some(n => n.id === payload.clientNoteId);
+
+                  if (hasOptimistic) {
+                      return prev.map(n => n.id === payload.clientNoteId ? newNote : n);
+                  }
+
+                  if (prev.some(n => n.id === newNote.id)) return prev;
+
+                  return [...prev, newNote];
+              });
+          });
+          unsubscribersRef.current.push(unsubNotes);
+
+        const unsubClosed = wsRef.current.subscribe("DROP_SESSION_CLOSED", () => {
+          showToast("Session closed", "info");
+          hardReset();
+        });
+        unsubscribersRef.current.push(unsubClosed);
+
+
+
+        const unsubFilesCleaned = wsRef.current.subscribe("DROP_SESSION_FILES_CLEANED", () => {
+          // server deleted them after session end
+          setFiles([]);
+        });
+        unsubscribersRef.current.push(unsubFilesCleaned);
+      },
+      [hardReset, showToast]
+  );
+
+    const joinSessionSequence = useCallback(async (codeOrId) => {
+        if (isLeavingRef.current) return false;
+
+        try {
+            const remainingSecondsFromExpiresAt = (expiresAt) => {
+                if (!expiresAt) return 600;
+                const ms = new Date(expiresAt).getTime() - Date.now();
+                return Math.max(0, Math.floor(ms / 1000));
+            };
+
+            setLoading(true);
+            setIsGuest(false);
+
+            // A. Resolve
+            const sessionData = await api.getSessionByCode(codeOrId);
+            if (!sessionData?.id) throw new Error("Session not found");
+
+            // B. Join
+            const participant = await api.joinSessionById(sessionData.id);
+            setMyParticipantId(participant.id);
+            setMyRole(participant.role);
+
+            const roster = await api.getParticipants(sessionData.id);
+            setParticipants(roster);
+
+            // Set AutoDownload pref if saved on participant (optional)
+            if (participant.autoDownload) setAutoDownload(true);
+
+            // C. Setup
+            setCurrentSession({
+                id: sessionData.id,
+                code: sessionData.code,
+                codeDisplay: `${sessionData.code.slice(0,4)}-${sessionData.code.slice(4)}`,
+                expiresAt: sessionData.expiresAt,
+                ownerId: sessionData.ownerId
+            });
+
+            startCountdown(remainingSecondsFromExpiresAt(sessionData.expiresAt));
+
+            // D. Fetch Data
+            const [fetchedFiles, fetchedNotes] = await Promise.all([
+                api.getFiles(sessionData.id),
+                api.getNotes(sessionData.id).catch(e => e?.status === 403 ? [] : Promise.reject(e))
+            ]);
+
+            // STRICT MAPPING
+            setFiles(fetchedFiles.map(f => ({
+                id: f.id,
+                name: f.originalName,
+                size: f.sizeBytes,
+                createdAt: f.createdAt,
+                status: 'uploaded',       // Always uploaded if fetched from list
+                downloadedByMe: f.downloadedByMe, // Boolean from backend
+                progress: 100
+            })));
+
+            setNotes(fetchedNotes.map(n => ({
+                id: n.id,
+                senderId: n.senderId,
+                content: n.content,
+                createdAt: n.createdAt
+            })));
+
+            if (fetchedNotes.length === 0 && !isGuest) {
+                // If try-catch didn't catch 403 but list is empty, we might check permissions separately
+                // but usually the catch block handles the isGuest toggle.
+            }
+
+            // E. Connect
+            connectWebSocket(sessionData.id);
+            // ... timer logic ...
+
+            return true;
+        } catch (err) {
+            console.error(err);
+            setLoading(false);
+            setCurrentSession(null);
+
+            if (err?.status === 403) {
+                setIsGuest(true);
+                return true;
+            } else {
+                showToast(err?.message || "Session invalid", "error");
+                return false;
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, [connectWebSocket, isGuest, showToast]);
+
+  // ---------- create pairing ----------
+  const createPairing = useCallback(async () => {
+    try {
+      setLoading(true);
+      cleanupWebSocketSubscriptions();
+
+      const session = await api.createSession();
+
+      const normalized = normalizeCode(session.code);
       const display = withHyphen(normalized);
 
-      const qrData =
-          response.qrCodeData ||
-          (await QRCode.toDataURL(display, { width: 200, margin: 1 }));
+      const joinUrl = `${window.location.origin}/join?code=${normalized}`;
 
       setCurrentSession({
-        id: response.roomId,
+        id: session.id,
         code: normalized,
         codeDisplay: display,
-        secret: response.secret || "",
-        qrCodeData: qrData,
+        qrCodeData: joinUrl,
         createdAt: Date.now(),
       });
 
-      startCountdown();
+        setParticipants([]);
+        setIsConnected(false);
 
-      wsRef.current = new WebSocketService();
-      wsRef.current.connect(response.roomId);
+        const me = await api.joinSessionById(session.id); // Idempotent join to get details
+        setMyParticipantId(me.id);
+        setMyRole(me.role);
 
-      const unsubPeerJoined = wsRef.current.subscribe("PEER_JOINED", (payload) => {
-        console.log("🟢 PEER_JOINED received:", payload);
-        setIsConnected(true);
-        busRef.current.emit("phoneJoined");
-        showToast("Sender connected!");
-      });
-      unsubscribersRef.current.push(unsubPeerJoined);
+      // server-driven countdown
+        const remaining = session.expiresAt
+            ? Math.max(0, Math.floor((new Date(session.expiresAt).getTime() - Date.now()) / 1000))
+            : (session.remainingSeconds ?? 600);
+      startCountdown(remaining);
 
-      const unsubFileUploaded = wsRef.current.subscribe("FILE_UPLOADED", (payload) => {
-        setFiles((prev) => [
-          ...prev,
-          {
-            id: payload.id,
-            name: payload.name,
-            size: payload.size,
-            status: "uploaded",
+      // connect WS
+      connectWebSocket(session.id);
+
+      // load current files (owner auto-participant)
+      const existingFiles = await api.getFiles(session.id);
+      setFiles(
+          (existingFiles || []).map((f) => ({
+            id: f.id,
+            name: f.originalName,
+            size: f.sizeBytes,
+            status: f.downloadedByMe ? "downloaded" : "uploaded",
             progress: 100,
-            serverFileId: payload.id,
-          },
-        ]);
-        busRef.current.emit("fileUploaded", payload);
-        showToast(`Received ${payload.name}`);
-      });
-      unsubscribersRef.current.push(unsubFileUploaded);
+            serverFileId: f.id,
+          }))
+      );
 
-      const unsubFileDownloaded = wsRef.current.subscribe("FILE_DOWNLOADED", (payload) => {
-        setFiles(prev => prev.map(f =>
-            f.serverFileId === payload.id || f.id === payload.id
-                ? { ...f, status: "downloaded" }
-                : f
-        ));
-      });
-      unsubscribersRef.current.push(unsubFileDownloaded);
-
-      const unsubRoomExpired = wsRef.current.subscribe("ROOM_EXPIRED", () => {
-        showToast("Session expired", "error");
-        leaveRoom();
-      });
-      unsubscribersRef.current.push(unsubRoomExpired);
+      // settings
+      try {
+        const s = await api.getMySettings(session.id);
+        setAutoDownload(!!s?.autoDownload);
+      } catch {
+        // ignore
+      }
 
       showToast("Pairing session created");
+      return session;
     } catch (error) {
-      console.error("Failed to create room:", error);
+      console.error("Failed to create session:", error);
       showToast("Failed to create session. Try again.", "error");
     } finally {
       setLoading(false);
     }
-  }, [showToast, startCountdown, cleanupWebSocketSubscriptions]);
-
-  const joinWithCode = useCallback(
-      async (code6) => {
-        try {
-          setLoading(true);
-
-          cleanupWebSocketSubscriptions();
-
-          const formatted = normalizeCode(code6);
-          if (formatted.length !== 6) {
-            showToast("Enter a 6-character code", "error");
-            return false;
-          }
-
-          const response = await api.joinRoom(formatted, sessionIdRef.current);
-
-          if (response.success) {
-            setCurrentSession({
-              id: response.roomId,
-              code: formatted,
-              codeDisplay: withHyphen(formatted),
-              secret: "",
-            });
-            setIsConnected(true);
-
-            wsRef.current = new WebSocketService();
-            wsRef.current.connect(response.roomId);
-
-            const unsubFileDownloaded = wsRef.current.subscribe('FILE_DOWNLOADED', (payload) => {
-              console.log("⬇️ FILE_DOWNLOADED received:", payload);
-
-              setFiles(prev => prev.map(f =>
-                  f.serverFileId === payload.id || f.id === payload.id
-                      ? { ...f, status: 'downloaded' }
-                      : f
-              ));
-
-              showToast(`${payload.name} was downloaded`);
-            });
-            unsubscribersRef.current.push(unsubFileDownloaded);
-
-            const unsubRoomExpired = wsRef.current.subscribe('ROOM_EXPIRED', () => {
-              console.log("⏰ ROOM_EXPIRED received");
-              showToast("Session expired", "error");
-              leaveRoom();
-            });
-            unsubscribersRef.current.push(unsubRoomExpired);
-
-            busRef.current.emit("phoneJoined", { code: formatted });
-            showToast("Successfully joined session");
-            return true;
-          } else {
-            showToast(response.message || "Failed to join", "error");
-            return false;
-          }
-        } catch (error) {
-          console.error('Failed to join room:', error);
-          showToast("Invalid code. Please try again.", "error");
-          return false;
-        } finally {
-          setLoading(false);
+  }, [
+    cleanupWebSocketSubscriptions,
+    connectWebSocket,
+    normalizeCode,
+    showToast,
+    startCountdown,
+    withHyphen,
+  ]);
+    // ---------- upload ----------
+  const processFiles = useCallback(
+      async (selectedFiles) => {
+        if (!currentSession?.id) {
+          showToast("Please join a session first", "error");
+          return;
         }
-      },
-      [showToast, cleanupWebSocketSubscriptions]
-  );
 
-  const processFiles = useCallback(async (selectedFiles) => {
-    if (!isConnected) {
-      showToast("Please join a session first", "error");
-      return;
-    }
+        const MAX_SIZE = 100 * 1024 * 1024;
+        const oversizedFiles = selectedFiles.filter((f) => f.size > MAX_SIZE);
 
-    const MAX_SIZE = 100 * 1024 * 1024;
-    const oversizedFiles = selectedFiles.filter(f => f.size > MAX_SIZE);
+        if (oversizedFiles.length > 0) {
+          showToast(
+              `Some files exceed 100MB: ${oversizedFiles.map((f) => f.name).join(", ")}`,
+              "error"
+          );
+          selectedFiles = selectedFiles.filter((f) => f.size <= MAX_SIZE);
+        }
 
+        if (selectedFiles.length === 0) return;
 
+        for (const file of selectedFiles) {
+          const tempId = Math.random().toString(36).slice(2);
 
-    if (oversizedFiles.length > 0) {
-      showToast(
-          `Some files exceed 100MB: ${oversizedFiles.map(f => f.name).join(', ')}`,
-          "error"
-      );
-      selectedFiles = selectedFiles.filter(f => f.size <= MAX_SIZE);
-    }
+          const localFileObj = {
+            id: tempId,
+            name: file.name,
+            size: file.size,
+            status: "uploading",
+            progress: 0,
+            serverFileId: null,
+          };
 
-    if (selectedFiles.length === 0) return;
+          setFiles((prev) => [...prev, localFileObj]);
 
-    for (const file of selectedFiles) {
-      const tempId = Math.random().toString(36).slice(2);
-      const fileObj = {
-        id: tempId,
-        name: file.name,
-        size: file.size,
-        status: "uploading",
-        progress: 0
-      };
-      setFiles(prev => [...prev, fileObj]);
+          try {
+            // ✅ backend: POST /sessions/{id}/files/upload-url
+            const { signedUrl, objectPath } = await api.requestUpload(currentSession.id, {
+              fileName: file.name,
+              contentType: file.type || "application/octet-stream",
+              fileSize: file.size,
+            });
 
-      try {
-        const { signedUrl, objectPath } = await api.requestUpload(
-            currentSession.id,
-            file.name,
-            file.size,
-            file.type || "application/octet-stream"
-        );
+            const xhr = new XMLHttpRequest();
 
-        const xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener("progress", (e) => {
+              if (e.lengthComputable) {
+                const progress = (e.loaded / e.total) * 100;
+                setFiles((prev) =>
+                    prev.map((f) => (f.id === tempId ? { ...f, progress } : f))
+                );
+              }
+            });
 
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const progress = (e.loaded / e.total) * 100;
-            setFiles(prev => prev.map(f =>
-                f.id === tempId ? { ...f, progress } : f
-            ));
-          }
-        });
+            xhr.addEventListener("load", async () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const meta = await api.confirmUpload(currentSession.id, {
+                    objectPath,
+                    originalName: file.name,
+                    sizeBytes: file.size,
+                  });
 
-        xhr.addEventListener('load', async () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const metadata = await api.confirmUpload({
-                roomId: currentSession.id,
-                fileName: file.name,
-                objectPath,
-                contentType: file.type,
-                fileSize: file.size,
-              });
+                  setFiles((prev) =>
+                      prev.map((f) =>
+                          f.id === tempId
+                              ? {
+                                ...f,
+                              id: meta.id,
+                                status: "uploaded",
+                                progress: 100,
+                                serverFileId: meta.id,
+                              }
+                              : f
+                      )
+                  );
 
-              setFiles(prev => prev.map(f =>
-                  f.id === tempId
-                      ? { ...f, status: "uploaded", progress: 100, serverFileId: metadata.id }
-                      : f
-              ));
+                  busRef.current.emit("fileUploaded", {
+                    id: meta.id,
+                    name: file.name,
+                    size: file.size,
+                  });
 
-              busRef.current.emit("fileUploaded", {
-                ...fileObj,
-                status: "uploaded",
-                serverFileId: metadata.id,
-              });
+                  showToast(`${file.name} sent successfully`);
+                } catch (confirmError) {
+                  console.error("Failed to confirm upload:", confirmError);
+                  setFiles((prev) =>
+                      prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
+                  );
+                  showToast(`Failed to confirm ${file.name}`, "error");
+                }
+              } else {
+                setFiles((prev) =>
+                    prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
+                );
+                showToast(`Failed to upload ${file.name}`, "error");
+              }
+            });
 
-              showToast(`${file.name} sent successfully`);
-            } catch (confirmError) {
-              console.error('Failed to confirm upload:', confirmError);
-              setFiles(prev => prev.map(f =>
-                  f.id === tempId ? { ...f, status: "error" } : f
-              ));
-              showToast(`Failed to confirm ${file.name}`, "error");
-            }
-          } else {
-            setFiles(prev => prev.map(f =>
-                f.id === tempId ? { ...f, status: "error" } : f
-            ));
+            xhr.addEventListener("error", () => {
+              setFiles((prev) =>
+                  prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
+              );
+              showToast(`Failed to upload ${file.name}`, "error");
+            });
+
+            xhr.open("PUT", signedUrl);
+            xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+            xhr.send(file);
+          } catch (error) {
+            console.error("Upload failed:", error);
+            setFiles((prev) =>
+                prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
+            );
             showToast(`Failed to upload ${file.name}`, "error");
           }
-        });
-
-        xhr.addEventListener('error', () => {
-          setFiles(prev => prev.map(f =>
-              f.id === tempId ? { ...f, status: "error" } : f
-          ));
-          showToast(`Failed to upload ${file.name}`, "error");
-        });
-
-        xhr.open('PUT', signedUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.send(file);
-
-      } catch (error) {
-        console.error('Upload failed:', error);
-        setFiles(prev => prev.map(f =>
-            f.id === tempId ? { ...f, status: "error" } : f
-        ));
-        showToast(`Failed to upload ${file.name}`, "error");
-      }
-    }
-  }, [isConnected, currentSession, showToast]);
-
-  const downloadFile = useCallback(
-      async (fileId) => {
-        if (!currentSession) return;
-
-        try {
-          const file = files.find(f => f.id === fileId);
-          if (!file) return;
-
-          const response = await api.getDownloadUrl(
-              currentSession.id,
-              file.serverFileId || fileId
-          );
-
-          const link = document.createElement('a');
-          link.href = response.downloadUrl;
-          link.download = file.name;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          setFiles(prev => prev.map(f =>
-              f.id === fileId ? { ...f, status: "downloaded" } : f
-          ));
-
-          showToast(`Downloaded ${file.name}`);
-        } catch (error) {
-          console.error('Download failed:', error);
-          showToast(`Failed to download file`, "error");
         }
       },
-      [currentSession, files, showToast]
+      [currentSession, showToast]
   );
+
+    const downloadFile = useCallback(async (fileId) => {
+        if (!currentSession?.id) return;
+
+        try {
+            // Find file
+            const file = files.find(f => f.id === fileId);
+            if (!file) return;
+
+            // A. Get URL
+            const response = await api.getDownloadUrl(currentSession.id, fileId);
+
+            // B. Trigger Browser Download
+            const link = document.createElement("a");
+            link.href = response.downloadUrl;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // C. Call API to Mark
+            await api.markFileDownloaded(currentSession.id, fileId);
+
+            // D. Update Local State
+            setFiles(prev => prev.map(f =>
+                f.id === fileId ? { ...f, downloadedByMe: true } : f
+            ));
+
+            showToast(`Downloaded ${file.name}`);
+
+        } catch (error) {
+            console.error("Download failed:", error);
+            showToast("Failed to download file", "error");
+            setFiles(prev => prev.map(f =>
+                f.id === fileId ? { ...f, isDownloading: false } : f
+            ));
+
+        }
+        setFiles(prev => prev.map(f =>
+            f.id === fileId ? { ...f, downloadedByMe: true, isDownloading: false } : f
+        ));
+
+    }, [currentSession, files, showToast]);
+
+    useEffect(() => {
+        if (!autoDownload || !currentSession) return;
+
+        const pendingFiles = files.filter(f =>
+            f.status === 'uploaded' &&
+            f.downloadedByMe === false &&
+            !f.isDownloading // Prevent loops if you add a transient flag
+        );
+
+        if (pendingFiles.length === 0) return;
+
+        // Process sequentially or parallel
+        pendingFiles.forEach(async (file) => {
+            // Mark as processing to prevent double-trigger
+            setFiles(prev => prev.map(f => f.id === file.id ? { ...f, isDownloading: true } : f));
+            await downloadFile(file.id);
+            // downloadFile will update downloadedByMe: true, clearing it from this list
+        });
+
+    }, [files, autoDownload, currentSession, downloadFile]);
 
   const downloadAllFiles = useCallback(async () => {
     if (!currentSession || files.length === 0) {
@@ -448,8 +876,7 @@ export default function InstantShareProvider({ children }) {
       return;
     }
 
-    const uploadedFiles = files.filter(f => f.status === "uploaded");
-
+    const uploadedFiles = files.filter((f) => f.status === "uploaded");
     if (uploadedFiles.length === 0) {
       showToast("No files available to download", "error");
       return;
@@ -459,73 +886,42 @@ export default function InstantShareProvider({ children }) {
 
     for (const file of uploadedFiles) {
       await downloadFile(file.id);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 400));
     }
 
     showToast("All files downloaded!");
   }, [currentSession, files, downloadFile, showToast]);
 
-  const toggleAutoDownload = useCallback(() => {
-    setAutoDownload((v) => {
-      const nv = !v;
-      showToast(nv ? "Auto-download enabled" : "Auto-download disabled");
-      return nv;
-    });
-  }, [showToast]);
+    const toggleAutoDownload = useCallback(() => {
+        setAutoDownload(prev => {
+            const next = !prev;
+            showToast(next ? "Auto-download Enabled" : "Auto-download Disabled");
+            // Optional: Call API to persist this preference
+            // api.updateParticipant(currentSession.id, { autoDownload: next });
+            return next;
+        });
+    }, [showToast]);
 
-  const leaveRoom = useCallback(async () => {
-    const hasFiles = files.length > 0;
-
-    if (hasFiles) {
-      const confirmed = window.confirm(
-          "Are you sure you want to leave? Any unsent files will be lost."
-      );
-      if (!confirmed) return;
-    }
-
-    if (countdownRef.current) clearInterval(countdownRef.current);
-
-    cleanupWebSocketSubscriptions();
-
-    if (wsRef.current) {
-      try {
-        wsRef.current.disconnect();
-      } catch (e) {
-        console.error('Failed to disconnect:', e);
-      }
-      wsRef.current = null;
-    }
-
-    setCurrentSession(null);
-    setAutoDownload(false);
-    setTimeLeft(600);
-    setFiles([]);
-    setIsConnected(false);
-
-    showToast("Left session");
-  }, [files, showToast, cleanupWebSocketSubscriptions]);
-
-  const resetSession = leaveRoom;
-
+  // ---------- auto download behavior ----------
   useEffect(() => {
     if (!autoDownload) return;
 
     const off = busRef.current.on("fileUploaded", (file) => {
-      if (file.status === "uploaded") {
-        setTimeout(() => {
-          setFiles((prev) =>
-              prev.map((f) =>
-                  f.id === file.id ? { ...f, status: "downloaded" } : f
-              )
-          );
-          showToast(`Auto-downloaded ${file.name}`);
-        }, 500);
-      }
+      // your backend already sends download URLs only on request
+      // so “auto-download” here means “auto-trigger download”
+      if (!file?.id) return;
+
+      setTimeout(() => {
+        // try to auto-download by finding file in state
+        const f = files.find((x) => x.serverFileId === file.id || x.id === file.id);
+        if (f) downloadFile(f.id);
+      }, 600);
     });
 
     return off;
-  }, [autoDownload, showToast]);
+  }, [autoDownload, files, downloadFile]);
 
+  // ---------- countdown warnings ----------
   useEffect(() => {
     if (!currentSession) return;
 
@@ -536,6 +932,7 @@ export default function InstantShareProvider({ children }) {
     }
   }, [timeLeft, currentSession, showToast]);
 
+  // ---------- unmount cleanup ----------
   useEffect(() => {
     return () => {
       cleanupWebSocketSubscriptions();
@@ -544,44 +941,38 @@ export default function InstantShareProvider({ children }) {
     };
   }, [cleanupWebSocketSubscriptions]);
 
+
+
   const value = useMemo(
       () => ({
         currentSession,
+          myParticipantId,
         autoDownload,
         timeLeft,
         files,
         isConnected,
+          isGuest,
+          isOwner: myRole === "OWNER",
+        loading,
         formatTime,
         formatFileSize,
         createPairing,
-        joinWithCode,
+          sendSessionNote,
+          joinSessionSequence,
+          participants,
+          hasPeer,
+          notes,
         processFiles,
         downloadFile,
-        leaveRoom,
         downloadAllFiles,
         toggleAutoDownload,
+        leaveRoom,
+          endSessionForEveryone,
         resetSession,
         bus: busRef.current,
         showToast,
       }),
-      [
-        currentSession,
-        autoDownload,
-        timeLeft,
-        files,
-        isConnected,
-        formatTime,
-        formatFileSize,
-        createPairing,
-        joinWithCode,
-        processFiles,
-        leaveRoom,
-        downloadAllFiles,
-        downloadFile,
-        toggleAutoDownload,
-        resetSession,
-        showToast,
-      ]
+      [currentSession, myParticipantId, autoDownload, timeLeft, files, isConnected, isGuest, myRole, loading, formatTime, formatFileSize, createPairing, sendSessionNote, joinSessionSequence, participants, hasPeer, notes, processFiles, downloadFile, downloadAllFiles, toggleAutoDownload, leaveRoom, endSessionForEveryone, resetSession, showToast]
   );
 
   return (

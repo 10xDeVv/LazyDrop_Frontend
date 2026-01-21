@@ -1,281 +1,309 @@
 "use client";
-import { useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { api } from "@/lib/api";
+import Navbar from "@/components/Navbar";
+import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import {
+    Zap, ChevronRight, Activity, LogOut, Loader2, Trash2,
+    Crown, HardDrive, FileText, AlertTriangle, User, Shield
+} from "lucide-react";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, ArrowLeft, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 
-export default function SignUpPage() {
+// --- TYPOGRAPHY ---
+const heading = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], display: "swap" });
+const body = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], display: "swap" });
+
+// --- TOKENS ---
+const TOKENS = {
+    bg: "#0B0C0F",
+    panel: "#16181D",
+    text: "#F5F5F5",
+    muted: "#9CA3AF",
+    lime: "#DFFF00",
+    red: "#FF4D4D",
+    border: "rgba(255,255,255,0.08)"
+};
+
+export default function Dashboard() {
     const router = useRouter();
     const supabase = createClient();
 
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState(false);
+    // State
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [activeSessions, setActiveSessions] = useState([]);
+    const [subscription, setSubscription] = useState(null); // { plan: 'FREE', activeSessionsCount: 2, limit: 3 }
 
-    const handleSignUp = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-        setSuccess(false);
+    useEffect(() => {
+        const init = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const currentUser = session?.user || null;
+            setUser(currentUser);
+
+            try {
+                // 1. Fetch Sessions
+                const sessionsData = await api.getActiveSessions();
+                // Expecting sessionsData to be array of SessionDto
+                // SessionDto needs: { id, code, myRole, createdAt, expiresAt, participantCount }
+                setActiveSessions(sessionsData.sessions || []);
+
+                // 2. Fetch Subscription (If Auth)
+                if (currentUser) {
+                    try {
+                        const subData = await api.getMySubscription();
+                        setSubscription(subData);
+                    } catch (e) {
+                        console.warn("Sub fetch failed", e);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load dashboard:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
+    }, [router]);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push("/");
+    };
+
+    // --- ACTIONS ---
+
+    const handleSessionAction = async (session) => {
+        const isOwner = session.myRole === 'OWNER';
+        if (!confirm(isOwner ? "End session for everyone?" : "Leave this session?")) return;
 
         try {
-            // Sign up
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: name,
-                    },
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
-                },
-            });
-
-            if (error) throw error;
-
-            setSuccess(true);
-
-            // Redirect after 2 seconds
-            setTimeout(() => {
-                router.push("/dashboard");
-                router.refresh();
-            }, 2000);
-        } catch (error) {
-            setError(error.message);
-        } finally {
-            setLoading(false);
+            if (isOwner) {
+                await api.endSession(session.id); // DELETE /sessions/{id}
+            } else {
+                await api.leaveSession(session.id); // DELETE /sessions/{id}/participants
+            }
+            // Optimistic update
+            setActiveSessions(prev => prev.filter(s => s.id !== session.id));
+        } catch (err) {
+            alert("Action failed. Please try again.");
         }
     };
 
-    const handleGoogleSignUp = async () => {
-        setLoading(true);
-        setError("");
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0B0C0F] flex items-center justify-center text-white">
+                <Loader2 className="w-10 h-10 text-[#DFFF00] animate-spin" />
+            </div>
+        );
+    }
 
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                },
-            });
-
-            if (error) throw error;
-        } catch (error) {
-            setError(error.message);
-            setLoading(false);
-        }
-    };
+    // --- DERIVED STATE ---
+    const planName = subscription?.planCode || "GUEST"; // GUEST, FREE, PLUS, PRO
+    const sessionLimit = subscription?.limits?.maxActiveSessions || 1;
+    const currentUsage = activeSessions.length;
+    const usagePercent = Math.min((currentUsage / sessionLimit) * 100, 100);
 
     return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-            {/* Background Effects */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#00ff88]/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-            </div>
+        <div className={`${body.className} min-h-screen flex flex-col`} style={{ background: TOKENS.bg, color: TOKENS.text }}>
+            <Navbar />
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative w-full max-w-md"
-            >
-                {/* Back Button */}
-                <Link
-                    href="/public"
-                    className="inline-flex items-center gap-2 text-[#999] hover:text-white transition mb-8"
-                >
-                    <ArrowLeft size={20} />
-                    Back to home
-                </Link>
+            <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
 
-                {/* Card */}
-                <div className="p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="text-4xl mb-4">🦥</div>
-                        <h1 className="text-3xl font-bold mb-2">Join LazyDrop</h1>
-                        <p className="text-[#999]">
-                            Unlock transfer history and premium features
+                {/* --- HEADER SECTION --- */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                    <div>
+                        <h1 className={`${heading.className} text-4xl md:text-5xl font-bold mb-3 tracking-tight`}>
+                            Mission Control
+                        </h1>
+                        <p className="text-gray-400 text-lg flex items-center gap-2">
+                            Welcome, <span className="text-white font-medium">{user?.email || "Guest"}</span>.
+                            {user && <span className={`text-xs px-2 py-0.5 rounded border border-white/20 uppercase tracking-widest ${mono.className}`}>{planName}</span>}
                         </p>
                     </div>
 
-                    {/* Success Message */}
-                    {success && (
-                        <div className="mb-6 p-4 rounded-lg bg-[#00ff88]/10 border border-[#00ff88]/50 flex items-start gap-3">
-                            <CheckCircle size={20} className="text-[#00ff88] shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-sm text-[#00ff88] font-medium">Account created!</p>
-                                <p className="text-sm text-[#999] mt-1">Redirecting to dashboard...</p>
+                    {/* Header Actions */}
+                    <div className="flex items-center gap-3">
+                        {!user ? (
+                            <div className="flex flex-col items-end gap-2">
+                                <Link href="/signup" className="text-sm text-[#DFFF00] hover:underline flex items-center gap-1">
+                                    <AlertTriangle size={14} /> Sign in to sync sessions
+                                </Link>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Error Message */}
-                    {error && (
-                        <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/50 flex items-start gap-3">
-                            <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
-                            <p className="text-sm text-red-400">{error}</p>
-                        </div>
-                    )}
-
-                    {/* Form */}
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                        {/* Name */}
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Name</label>
-                            <div className="relative">
-                                <User
-                                    size={20}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]"
-                                />
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Your name"
-                                    required
-                                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:border-[#00ff88] focus:outline-none transition"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Email */}
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Email</label>
-                            <div className="relative">
-                                <Mail
-                                    size={20}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]"
-                                />
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="you@example.com"
-                                    required
-                                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:border-[#00ff88] focus:outline-none transition"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <Lock
-                                    size={20}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]"
-                                />
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    required
-                                    minLength={6}
-                                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:border-[#00ff88] focus:outline-none transition"
-                                />
-                            </div>
-                            <p className="mt-1 text-xs text-[#666]">
-                                At least 6 characters
-                            </p>
-                        </div>
-
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={loading || success}
-                            className="w-full py-3 bg-[#00ff88] text-black rounded-lg font-semibold hover:bg-[#00dd77] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 size={20} className="animate-spin" />
-                                    Creating account...
-                                </>
-                            ) : success ? (
-                                <>
-                                    <CheckCircle size={20} />
-                                    Account created!
-                                </>
-                            ) : (
-                                "Create Account"
-                            )}
-                        </button>
-                    </form>
-
-                    {/* Divider */}
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-white/10" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-black text-[#666]">Or continue with</span>
-                        </div>
+                        ) : (
+                            <button
+                                onClick={handleLogout}
+                                className="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-gray-400 text-sm font-bold hover:text-white hover:bg-white/10 transition flex items-center gap-2"
+                            >
+                                <LogOut size={16} /> Log Out
+                            </button>
+                        )}
                     </div>
-
-                    {/* Google Sign Up */}
-                    <button
-                        onClick={handleGoogleSignUp}
-                        disabled={loading || success}
-                        className="w-full py-3 border border-white/20 rounded-lg font-medium hover:bg-white/5 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                            <path
-                                fill="currentColor"
-                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            />
-                            <path
-                                fill="currentColor"
-                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            />
-                            <path
-                                fill="currentColor"
-                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                            />
-                            <path
-                                fill="currentColor"
-                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                            />
-                        </svg>
-                        Continue with Google
-                    </button>
-
-                    {/* Terms */}
-                    <p className="mt-6 text-xs text-center text-[#666]">
-                        By signing up, you agree to our{" "}
-                        <Link href="/terms" className="text-[#00ff88] hover:underline">
-                            Terms of Service
-                        </Link>{" "}
-                        and{" "}
-                        <Link href="/privacy" className="text-[#00ff88] hover:underline">
-                            Privacy Policy
-                        </Link>
-                    </p>
-
-                    {/* Log In Link */}
-                    <p className="mt-6 text-center text-sm text-[#999]">
-                        Already have an account?{" "}
-                        <Link href="/login" className="text-[#00ff88] hover:underline">
-                            Log in
-                        </Link>
-                    </p>
                 </div>
 
-                {/* Free Tier Note */}
-                <p className="mt-6 text-center text-sm text-[#666]">
-                    No account needed for basic file sharing.{" "}
-                    <Link href="/receive" className="text-[#00ff88] hover:underline">
-                        Start sharing now
-                    </Link>
-                </p>
-            </motion.div>
+                {/* --- SUBSCRIPTION METER (If User) --- */}
+                {user && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                        {/* Meter Card */}
+                        <div className="md:col-span-2 bg-[#16181D] border border-white/5 rounded-3xl p-6 relative overflow-hidden">
+                            <div className="flex justify-between items-end mb-4 relative z-10">
+                                <div>
+                                    <p className={`${mono.className} text-xs text-gray-500 uppercase tracking-widest mb-1`}>Active Sessions</p>
+                                    <h3 className="text-2xl font-bold text-white">{currentUsage} <span className="text-gray-500">/ {sessionLimit}</span></h3>
+                                </div>
+                                {currentUsage >= sessionLimit && (
+                                    <Link href="/pricing" className="text-xs font-bold text-[#DFFF00] hover:underline flex items-center gap-1">
+                                        <Zap size={12} /> Increase Limit
+                                    </Link>
+                                )}
+                            </div>
+                            {/* Progress Bar */}
+                            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden relative z-10">
+                                <div
+                                    className="h-full bg-[#DFFF00] transition-all duration-500 ease-out"
+                                    style={{ width: `${usagePercent}%` }}
+                                />
+                            </div>
+
+                            {/* Bg Decoration */}
+                            <Activity size={100} className="absolute -right-4 -bottom-4 text-white/5 rotate-12 pointer-events-none" />
+                        </div>
+
+                        {/* Plan Upgrade CTA */}
+                        {planName === 'FREE' && (
+                            <div className="bg-gradient-to-br from-[#16181D] to-[#1A1D23] border border-[#DFFF00]/20 rounded-3xl p-6 flex flex-col justify-between group cursor-pointer hover:border-[#DFFF00]/40 transition-all" onClick={() => router.push("/pricing")}>
+                                <div>
+                                    <div className="w-10 h-10 rounded-full bg-[#DFFF00]/10 flex items-center justify-center mb-4 text-[#DFFF00]">
+                                        <Crown size={20} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white">Upgrade Plan</h3>
+                                    <p className="text-xs text-gray-400 mt-1">Unlock 2GB transfers & history.</p>
+                                </div>
+                                <div className="mt-4 flex items-center text-[#DFFF00] text-sm font-bold group-hover:translate-x-1 transition-transform">
+                                    View Pricing <ChevronRight size={16} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* --- SESSION LIST --- */}
+                <h2 className={`${heading.className} text-2xl font-bold mb-6 flex items-center gap-3`}>
+                    Active Sessions
+                    <span className="text-xs bg-white/10 px-2 py-1 rounded-full text-gray-400 font-mono">{activeSessions.length}</span>
+                </h2>
+
+                {activeSessions.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {activeSessions.map((session) => {
+                            const isOwner = session.myRole === 'OWNER';
+                            const isExpired = new Date(session.expiresAt) < new Date();
+
+                            return (
+                                <motion.div
+                                    key={session.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`
+                                        bg-[#16181D] border rounded-3xl p-6 relative flex flex-col justify-between group hover:border-[#DFFF00]/30 transition-all
+                                        ${isExpired ? "border-red-500/20 opacity-60" : "border-white/5"}
+                                    `}
+                                >
+                                    {/* Top Row */}
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-lg text-white">
+                                                {session.code.slice(0, 1)}
+                                            </div>
+                                            <div>
+                                                <h3 className={`${mono.className} text-xl font-bold text-white tracking-wider`}>
+                                                    {session.code}
+                                                </h3>
+                                                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-0.5">
+                                                    {isOwner ? "Owner" : "Peer"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {isExpired && (
+                                            <span className="px-2 py-1 bg-red-500/10 text-red-500 text-[10px] font-bold uppercase rounded border border-red-500/20">
+                                                Expired
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Stats */}
+                                    <div className="space-y-3 mb-8">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-500 flex items-center gap-2"><User size={14} /> Participants</span>
+                                            <span className="text-white font-mono">{session.participantCount || 1}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-500 flex items-center gap-2"><FileText size={14} /> Files</span>
+                                            <span className="text-white font-mono">{session.fileCount || 0}</span>
+                                        </div>
+                                        <div className="w-full h-px bg-white/5 my-2" />
+                                        <p className="text-xs text-gray-500 text-right">
+                                            Exp: {new Date(session.expiresAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </p>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {!isExpired ? (
+                                            <Link
+                                                href={`/session/${session.code}`}
+                                                className="col-span-1 py-3 bg-[#DFFF00] text-black font-bold rounded-xl text-sm text-center hover:bg-[#ccee00] transition flex items-center justify-center gap-2"
+                                            >
+                                                Rejoin
+                                            </Link>
+                                        ) : (
+                                            <button disabled className="col-span-1 py-3 bg-white/5 text-gray-600 font-bold rounded-xl text-sm cursor-not-allowed">
+                                                Expired
+                                            </button>
+                                        )}
+
+                                        <button
+                                            onClick={() => handleSessionAction(session)}
+                                            className={`
+                                                col-span-1 py-3 font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition border
+                                                ${isOwner
+                                                ? "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
+                                                : "bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white"
+                                            }
+                                            `}
+                                        >
+                                            {isOwner ? <Trash2 size={14} /> : <LogOut size={14} />}
+                                            {isOwner ? "End" : "Leave"}
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    // --- EMPTY STATE ---
+                    <div className="flex flex-col items-center justify-center py-20 bg-[#16181D]/50 rounded-[32px] border border-white/5 border-dashed">
+                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
+                            <Activity size={32} className="text-gray-600" />
+                        </div>
+                        <h3 className={`${heading.className} text-2xl font-bold text-white mb-2`}>No Active Sessions</h3>
+                        <p className="text-gray-500 max-w-sm text-center mb-8">
+                            You aren't connected to any rooms right now. Start a transfer to see it appear here.
+                        </p>
+                        <Link
+                            href="/send"
+                            className="px-8 py-4 bg-[#DFFF00] text-black font-bold rounded-xl hover:bg-[#ccee00] transition shadow-lg flex items-center gap-2"
+                        >
+                            <Zap size={18} fill="black" /> Start New Drop
+                        </Link>
+                    </div>
+                )}
+
+            </div>
         </div>
     );
 }

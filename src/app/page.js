@@ -1,214 +1,510 @@
 // app/page.jsx
 "use client";
+
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import PricingCard from "@/components/PricingCard";
 import {
-    Zap,
-    Shield,
-    Clock,
-    Users,
     ArrowRight,
-    Check,
+    ArrowDown,
     Sparkles,
     Upload,
     Download,
-    QrCode, CheckCircle,
-    File
+    QrCode,
+    Shield,
+    Zap,
+    Clock,
+    Users,
+    Check,
+    Lock,
+    Wifi,
+    File,
+    Laptop,
+    Smartphone,
+    Image as ImageIcon
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import Image from "next/image";
+import { Space_Grotesk, Inter } from "next/font/google";
 
-// Hero Section - FULLY RESPONSIVE
+const heading = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], display: "swap" });
+const body = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" });
+
+// ---- Tokens
+const TOKENS = {
+    bg: "#0E0F12",
+    panel: "#16181D",
+    panel2: "#1C1F26",
+    text: "#F5F5F5",
+    muted: "#9CA3AF",
+    dim: "#6B7280",
+    line: "rgba(255,255,255,0.10)",
+    line2: "rgba(255,255,255,0.14)",
+    lime: "#DFFF00", // acid lime
+    cyan: "rgba(93,224,255,0.85)",
+};
+
+// ---------- Typewriter code
+function TypewriterCode() {
+    const codes = useMemo(() => ["LD-482-019", "LD-905-771", "LD-112-604", "LD-738-255"], []);
+    const [displayed, setDisplayed] = useState("");
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [idx, setIdx] = useState(0);
+
+    useEffect(() => {
+        const current = codes[idx];
+        const speed = isDeleting ? 55 : 90;
+        const pause = 1400;
+
+        const t = setTimeout(() => {
+            if (!isDeleting) {
+                if (displayed.length < current.length) setDisplayed(current.slice(0, displayed.length + 1));
+                else setTimeout(() => setIsDeleting(true), pause);
+            } else {
+                if (displayed.length > 0) setDisplayed(current.slice(0, displayed.length - 1));
+                else {
+                    setIsDeleting(false);
+                    setIdx((p) => (p + 1) % codes.length);
+                }
+            }
+        }, speed);
+
+        return () => clearTimeout(t);
+    }, [codes, displayed, isDeleting, idx]);
+
+    return (
+        <div className="inline-flex items-center gap-2">
+            <div className="px-4 py-2 rounded-2xl border" style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.04)" }}>
+                <span className="font-mono text-lg md:text-xl tracking-[0.22em]" style={{ color: TOKENS.text }}>
+                    {displayed || "LD-"}
+                </span>
+                <span className="ml-1 animate-pulse" style={{ color: TOKENS.lime }}>|</span>
+            </div>
+        </div>
+    );
+}
+
+// ---------- Rotating circle with Down Arrow
+function ScrollDownSpinner() {
+    return (
+        <div className="relative w-32 h-32 flex items-center justify-center cursor-pointer group">
+            {/* The Spinning Text */}
+            <div className="absolute inset-0 animate-[spin_10s_linear_infinite]">
+                <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <path
+                        id="circlePath"
+                        d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"
+                        fill="transparent"
+                    />
+                    <text className="text-[10px] font-bold uppercase tracking-widest fill-white/50 group-hover:fill-white transition-colors">
+                        <textPath href="#circlePath" startOffset="0%">
+                            • SCROLL DOWN • DISCOVER • LAZYDROP •
+                        </textPath>
+                    </text>
+                </svg>
+            </div>
+
+            {/* The Arrow Center */}
+            <div
+                className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                style={{ background: TOKENS.lime, boxShadow: `0 0 20px ${TOKENS.lime}40` }}
+            >
+                <ArrowDown className="w-5 h-5 text-black animate-bounce" />
+            </div>
+        </div>
+    );
+}
+
+// ---------- Session Visual (FIXED: Bigger QR + Working Glow)
+function SessionVisual() {
+    return (
+        <div className="relative group">
+            {/* Background Glows */}
+            <div className="absolute -top-16 -right-10 w-72 h-72 rounded-full blur-3xl opacity-35" style={{ background: `radial-gradient(circle, ${TOKENS.lime} 0%, transparent 60%)` }} />
+            <div className="absolute -bottom-16 -left-10 w-72 h-72 rounded-full blur-3xl opacity-25" style={{ background: `radial-gradient(circle, ${TOKENS.cyan} 0%, transparent 60%)` }} />
+
+            <div
+                className="relative rounded-[28px] border overflow-hidden shadow-2xl backdrop-blur-sm"
+                style={{
+                    borderColor: TOKENS.line,
+                    background: `linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))`,
+                }}
+            >
+                {/* Top Bar */}
+                <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: TOKENS.line }}>
+                    <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor] animate-pulse" style={{ background: TOKENS.lime, color: TOKENS.lime }} />
+                        <span className="text-xs uppercase tracking-[0.22em] font-medium" style={{ color: TOKENS.dim }}>Live Session</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-mono" style={{ color: TOKENS.dim }}>
+                        <Lock className="w-3 h-3" />
+                        <span>E2E ENCRYPTED</span>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 md:p-8 space-y-8">
+
+                    {/* Header Row: Code & QR */}
+                    <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                            <p className="text-xs uppercase tracking-widest mb-3 font-semibold" style={{ color: TOKENS.dim }}>Connection Key</p>
+                            <div className="mb-5">
+                                <TypewriterCode />
+                            </div>
+
+                            {/* Device Pills */}
+                            <div className="flex flex-wrap gap-2">
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium" style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.05)", color: TOKENS.muted }}>
+                                    <Laptop className="w-3 h-3" />
+                                    <span>MacBook Pro</span>
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium" style={{ borderColor: "rgba(223,255,0,0.2)", background: "rgba(223,255,0,0.1)", color: TOKENS.lime }}>
+                                    <Smartphone className="w-3 h-3" />
+                                    <span>iPhone 15</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BIGGER QR Code container */}
+                        <div className="p-3 bg-white rounded-2xl shadow-xl transform rotate-2 hover:rotate-0 transition-transform duration-300">
+                            <QrCode className="w-20 h-20 md:w-24 md:h-24 text-black" strokeWidth={1.5} />
+                        </div>
+                    </div>
+
+                    {/* Drag & Drop Zone (FIXED: Hover Glow) */}
+                    <div
+                        className="relative rounded-2xl border-2 border-dashed p-8 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.01] cursor-pointer group/drop"
+                        style={{ borderColor: TOKENS.line, background: "rgba(0,0,0,0.2)" }}
+                    >
+                        {/* CSS trick for hover border color since inline styles override tailwind classes sometimes */}
+                        <style jsx>{`
+                            .groupdrop:hover {
+                                border-color: ${TOKENS.lime} !important;
+                                background-color: rgba(223, 255, 0, 0.05) !important;
+                            }
+                        `}</style>
+
+                        <div
+                            className="w-14 h-14 rounded-full flex items-center justify-center mb-3 shadow-lg transition-transform group-hover/drop:scale-110 group-hover/drop:shadow-[0_0_20px_rgba(223,255,0,0.2)]"
+                            style={{ background: "#181818", border: `1px solid ${TOKENS.line}` }}
+                        >
+                            <Upload className="w-6 h-6 transition-colors group-hover/drop:text-[#DFFF00]" style={{ color: TOKENS.lime }} />
+                        </div>
+                        <p className="text-base font-medium relative z-10 transition-colors group-hover/drop:text-white" style={{ color: TOKENS.text }}>Drop files to send</p>
+                        <p className="text-xs relative z-10" style={{ color: TOKENS.dim }}>or click to browse</p>
+                    </div>
+
+                    {/* Active Transfers */}
+                    <div className="space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: TOKENS.dim }}>Recent Transfers</p>
+
+                        {/* File 1 */}
+                        <div className="flex items-center justify-between p-3 rounded-xl border transition-colors hover:bg-white/5 hover:border-white/20" style={{ background: "#181818", borderColor: TOKENS.line }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#F87171" }}>
+                                    <File className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium" style={{ color: TOKENS.text }}>lecture-notes.pdf</p>
+                                    <p className="text-xs" style={{ color: TOKENS.dim }}>4.2 MB • PDF</p>
+                                </div>
+                            </div>
+                            <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]" style={{ background: TOKENS.lime, color: TOKENS.lime }} />
+                        </div>
+
+                        {/* File 2 */}
+                        <div className="flex items-center justify-between p-3 rounded-xl border transition-colors hover:bg-white/5 hover:border-white/20" style={{ background: "#181818", borderColor: TOKENS.line }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(59, 130, 246, 0.1)", color: "#60A5FA" }}>
+                                    <ImageIcon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium" style={{ color: TOKENS.text }}>design-mockup.png</p>
+                                    <p className="text-xs" style={{ color: TOKENS.dim }}>12 MB • PNG</p>
+                                </div>
+                            </div>
+                            <Check className="w-4 h-4" style={{ color: TOKENS.lime }} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ---------- Hero
 function Hero() {
     return (
-        <section className="relative min-h-[85vh] sm:min-h-screen flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-8 sm:pb-0">
-            {/* Gradient Background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#00ff88]/5 via-transparent to-transparent" />
-            <div className="absolute top-1/4 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-[#00ff88]/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        <section className="relative pt-32 pb-20 overflow-hidden flex flex-col items-center min-h-[90vh] justify-center">
+            {/* Background Texture */}
+            <div className="absolute inset-0 opacity-[0.75] pointer-events-none"
+                 style={{
+                     background: `
+            radial-gradient(1200px 600px at 20% 10%, rgba(255,255,255,0.06), transparent 60%),
+            radial-gradient(900px 500px at 80% 30%, rgba(223,255,0,0.12), transparent 60%),
+            radial-gradient(800px 500px at 50% 90%, rgba(93,224,255,0.08), transparent 60%)
+          `,
+                 }}
+            />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: `linear-gradient(180deg, transparent, ${TOKENS.bg} 90%)` }} />
 
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20 w-full">
-                <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-                    {/* Left Side - Content */}
-                    <div className="text-left">
-                        {/* Badge */}
+                <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+
+                    {/* Left Content */}
+                    <div className="text-left relative z-10">
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 mb-4 sm:mb-6 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm"
+                            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border backdrop-blur mb-6"
+                            style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.04)" }}
                         >
-                            <Sparkles size={14} className="text-[#00ff88] sm:w-4 sm:h-4" />
-                            <span className="text-xs sm:text-sm text-[#999]">Too lazy for cables? Same.</span>
+                            <Sparkles className="w-4 h-4" style={{ color: TOKENS.lime }} />
+                            <span className="text-xs sm:text-sm" style={{ color: TOKENS.muted }}>Too lazy for cables? Same.</span>
                         </motion.div>
 
-                        {/* Headline */}
                         <motion.h1
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-bold mb-3 sm:mb-4 lg:mb-6 leading-[1.05] sm:leading-tight"
+                            transition={{ delay: 0.05 }}
+                            className={`text-5xl sm:text-6xl md:text-7xl lg:text-[4.6rem] xl:text-[5.5rem] leading-[0.92] tracking-tight ${heading.className}`}
+                            style={{ color: TOKENS.text }}
                         >
-                            Drop files like you drop
+                            SHARE.
                             <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff88] to-[#00dddd]">
-                                excuses
-                            </span>
+                            NO <span style={{ color: TOKENS.lime }}>STRINGS.</span>
+                            <br />
+                            JUST <span style={{ color: "rgba(255,255,255,0.65)" }}>FLOW.</span>
                         </motion.h1>
 
-                        {/* Subheadline */}
                         <motion.p
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="text-sm sm:text-lg lg:text-xl text-[#999] mb-6 sm:mb-8 lg:mb-10"
+                            transition={{ delay: 0.12 }}
+                            className={`mt-6 text-base sm:text-lg lg:text-xl ${body.className}`}
+                            style={{ color: TOKENS.muted, maxWidth: 560 }}
                         >
-                            Drop files between devices instantly. No cables, no apps, no signups.
-                            Just pure laziness-enabled technology.
+                            Pair devices with a code or QR. Drop the file. Done.
+                            Clean UX, encrypted transfers, and zero “why is this so hard?” energy.
                         </motion.p>
 
-                        {/* CTA Buttons */}
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8"
+                            transition={{ delay: 0.18 }}
+                            className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4"
                         >
-                            <Link
-                                href="/receive"
-                                className="group px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-semibold text-black bg-[#00ff88] rounded-xl hover:bg-[#00dd77] transition flex items-center justify-center gap-2"
+                            <Link href="/send" className="group px-8 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition"
+                                  style={{ background: TOKENS.lime, color: "#0B0C0F", boxShadow: "0 10px 30px rgba(223,255,0,0.18)" }}
                             >
-                                Start Dropping Files
-                                <ArrowRight
-                                    size={20}
-                                    className="group-hover:translate-x-1 transition"
-                                />
+                                Start Dropping
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
                             </Link>
-                            <Link
-                                href="#pricing"
-                                className="px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-semibold text-white border border-white/20 rounded-xl hover:border-white/40 hover:bg-white/5 transition text-center"
+
+                            <Link href="#how-it-works" className="px-8 py-4 rounded-2xl font-semibold text-center transition border hover:bg-white/5"
+                                  style={{ borderColor: TOKENS.line2, color: TOKENS.text }}
                             >
-                                View Pricing
+                                How it Works
                             </Link>
+
+
                         </motion.div>
 
-                        {/* Trust Badge */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ delay: 0.5 }}
-                            className="flex flex-row items-center gap-2 sm:gap-3 text-xs sm:text-sm text-[#666]"
+                            transition={{ delay: 0.24 }}
+                            className="mt-3 text-xs sm:text-sm"
+                            style={{ color: TOKENS.dim }}
                         >
-                            <div className="flex -space-x-2">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div
-                                        key={i}
-                                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#00ff88] to-[#00ddff] border-2 border-black"
-                                    />
-                                ))}
-                            </div>
-                            <span>Trusted by 10,000+ lazy people worldwide</span>
+                            No signup required for Free.
                         </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.28 }}
+                            className="mt-8 flex flex-wrap items-center gap-2"
+                        >
+  <span className="text-xs sm:text-sm mr-2" style={{ color: TOKENS.dim }}>
+    Works on
+  </span>
+
+                            {["Mac", "Windows", "iOS", "Android", "Linux"].map((p) => (
+                                <span
+                                    key={p}
+                                    className="inline-flex items-center px-3 py-1.5 rounded-full border text-xs sm:text-sm font-medium"
+                                    style={{
+                                        borderColor: TOKENS.line2,
+                                        background: "rgba(255,255,255,0.03)",
+                                        color: TOKENS.text,
+                                    }}
+                                >
+      {p}
+    </span>
+                            ))}
+                        </motion.div>
+
                     </div>
 
-                    {/* Right Side - Visual Element */}
-                    {/* Right Side - Code + QR Visual */}
-                    {/* Right Side - Code + QR Visual */}
+                    {/* Right Visual (Hidden on mobile for better responsiveness, visible lg+) */}
                     <motion.div
-                        initial={{ opacity: 0, x: 30 }}
+                        initial={{ opacity: 0, x: 24 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4, duration: 0.8 }}
-                        className="hidden lg:block relative"
+                        transition={{ delay: 0.15, duration: 0.7 }}
+                        className="hidden lg:block relative z-10"
                     >
-                        <div className="relative">
-                            {/* Main Card Container */}
-                            <div className="bg-[#0a0a0a]/50 border border-[#1a1a1a] rounded-3xl p-10 lg:p-12 backdrop-blur-xl max-w-md">
-                                {/* Header */}
-                                <div className="flex items-center gap-2 mb-10">
-                                    <div className="w-2 h-2 rounded-full bg-[#00ff88]" />
-                                    <p className="text-xs uppercase tracking-[0.2em] text-[#666] font-medium">
-                                        Connect Instantly
-                                    </p>
-                                </div>
+                        <SessionVisual />
+                    </motion.div>
+                </div>
 
-                                {/* Code Section */}
-                                <div className="mb-12">
-                                    <p className="text-sm text-[#666] mb-6 tracking-wide">Enter code</p>
-                                    <div className="font-mono text-7xl font-bold tracking-[0.1em] text-white leading-none">
-                                        123<span className="text-[#2a2a2a] mx-2">-</span>456
-                                    </div>
-                                </div>
+                {/* The Spinner - Centered at Bottom of Hero */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 }}
+                    className="flex justify-center mt-20 sm:mt-24 lg:mt-32"
+                >
+                    <Link href="#how-it-works">
+                        <ScrollDownSpinner />
+                    </Link>
+                </motion.div>
+            </div>
+        </section>
+    );
+}
 
-                                {/* Divider */}
-                                <div className="relative flex items-center my-10">
-                                    <div className="flex-1 h-px bg-[#1a1a1a]" />
-                                    <span className="px-6 text-sm text-[#666] tracking-wide">
-                    or
-                </span>
-                                    <div className="flex-1 h-px bg-[#1a1a1a]" />
-                                </div>
+function SectionHeader({ title, subtitle }) {
+    return (
+        <div className="text-center mb-10 sm:mb-12 lg:mb-16">
+            <h2 className={`${heading.className} text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold`} style={{ color: TOKENS.text }}>
+                {title}
+            </h2>
+            {subtitle ? (
+                <p className={`${body.className} mt-4 text-base sm:text-lg`} style={{ color: TOKENS.muted, maxWidth: 680, marginInline: "auto" }}>
+                    {subtitle}
+                </p>
+            ) : null}
+        </div>
+    );
+}
 
-                                {/* QR Section */}
-                                <div>
-                                    <p className="text-sm text-[#666] mb-6 tracking-wide">Scan QR code</p>
+// ---------- Bento Grid
+function BentoHowItWorks() {
+    return (
+        <section id="how-it-works" className="py-20 lg:py-32">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20">
+                <div className="mb-12 sm:mb-16">
+                    <h2 className={`${heading.className} text-4xl sm:text-5xl md:text-7xl leading-[0.95]`} style={{ color: TOKENS.text }}>
+                        ZERO <span style={{ color: "rgba(255,255,255,0.55)" }}>FRICTION.</span>
+                        <br />
+                        JUST <span style={{ color: TOKENS.lime }}>FLOW.</span>
+                    </h2>
+                </div>
 
-                                    {/* QR Code Container */}
-                                    <div className="relative inline-block">
-                                        <div className="bg-white p-5 rounded-2xl">
-                                            {/* Real QR Code Pattern */}
-                                            <svg width="180" height="180" viewBox="0 0 21 21" className="w-44 h-44">
-                                                <rect width="21" height="21" fill="white"/>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:auto-rows-[minmax(0,1fr)]">
+                    {/* Card 1: Scan (Abstract Phone UI) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="relative overflow-hidden rounded-[32px] border p-8 md:row-span-2 flex flex-col justify-between group min-h-[400px]"
+                        style={{ borderColor: TOKENS.line, background: `linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))` }}
+                    >
+                        <div className="absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full transition-opacity opacity-20 group-hover:opacity-40" style={{ background: TOKENS.lime }} />
 
-                                                {/* Generate actual QR-like pattern */}
-                                                {(() => {
-                                                    const qrData = [
-                                                        // Position markers and data pattern
-                                                        [1,1,1,1,1,1,1,0,1,0,1,1,0,0,1,1,1,1,1,1,1],
-                                                        [1,0,0,0,0,0,1,0,0,1,1,0,1,0,1,0,0,0,0,0,1],
-                                                        [1,0,1,1,1,0,1,0,1,0,1,1,0,0,1,0,1,1,1,0,1],
-                                                        [1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,1,0,1],
-                                                        [1,0,1,1,1,0,1,0,1,1,1,0,0,0,1,0,1,1,1,0,1],
-                                                        [1,0,0,0,0,0,1,0,0,0,1,1,1,0,1,0,0,0,0,0,1],
-                                                        [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1],
-                                                        [0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0],
-                                                        [1,0,1,0,1,1,1,1,1,0,1,1,1,1,0,1,0,1,1,0,1],
-                                                        [0,1,0,1,0,1,0,0,0,1,0,0,1,0,1,1,1,0,0,1,0],
-                                                        [1,1,1,0,1,0,1,1,1,0,1,1,0,1,0,0,0,1,1,0,1],
-                                                        [0,0,0,1,0,1,0,0,0,1,1,0,1,0,1,1,1,0,0,1,0],
-                                                        [1,1,1,0,1,0,1,1,1,0,0,1,0,1,1,0,0,1,1,0,1],
-                                                        [0,0,0,0,0,0,0,0,1,1,1,0,1,1,0,0,1,0,1,1,0],
-                                                        [1,1,1,1,1,1,1,0,0,0,0,1,0,0,1,1,0,1,0,1,1],
-                                                        [1,0,0,0,0,0,1,0,1,1,1,0,1,1,0,0,1,0,1,0,1],
-                                                        [1,0,1,1,1,0,1,0,0,0,0,1,0,0,1,1,1,1,0,1,0],
-                                                        [1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,0,0,0,1,1,1],
-                                                        [1,0,1,1,1,0,1,0,0,0,1,1,0,0,1,1,0,1,0,0,1],
-                                                        [1,0,0,0,0,0,1,0,1,1,0,0,1,1,0,1,1,0,1,1,0],
-                                                        [1,1,1,1,1,1,1,0,0,1,1,1,0,0,1,0,1,1,1,0,1],
-                                                    ];
-
-                                                    return qrData.flatMap((row, y) =>
-                                                        row.map((cell, x) =>
-                                                            cell ? (
-                                                                <rect
-                                                                    key={`${x}-${y}`}
-                                                                    x={x}
-                                                                    y={y}
-                                                                    width="1"
-                                                                    height="1"
-                                                                    fill="black"
-                                                                />
-                                                            ) : null
-                                                        )
-                                                    );
-                                                })()}
-                                            </svg>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div>
+                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-lg" style={{ background: "white", color: "#0B0C0F" }}>
+                                <QrCode size={32} strokeWidth={2.5} />
                             </div>
-
-                            {/* Subtle floating accent - very minimal */}
-                            <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-[#00ff88]/3 blur-3xl -z-10" />
+                            <h3 className={`${heading.className} text-3xl sm:text-4xl`} style={{ color: TOKENS.text }}>Scan &<br />Connect</h3>
+                            <p className={`${body.className} mt-4 text-lg`} style={{ color: TOKENS.muted }}>
+                                No accounts. QR or a short code creates a secure P2P tunnel instantly.
+                            </p>
                         </div>
+
+                        {/* Abstract Phone UI */}
+                        <div className="mt-8 relative w-full h-48 rounded-t-3xl border-t border-x mx-auto transform translate-y-4" style={{ background: "#222", borderColor: TOKENS.line }}>
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full bg-white/20" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <QrCode className="text-white/20 w-20 h-20" />
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Card 2: Speed (Bar Chart Animation) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.06 }}
+                        className="relative overflow-hidden rounded-[32px] border p-8 md:col-span-2 flex flex-col md:flex-row items-center justify-between gap-8 group min-h-[300px]"
+                        style={{ borderColor: TOKENS.line, background: `linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))` }}
+                    >
+                        <div className="relative z-10 flex-1">
+                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: TOKENS.lime, color: "#0B0C0F" }}>
+                                <Zap size={32} strokeWidth={2.5} />
+                            </div>
+                            <h3 className={`${heading.className} text-3xl sm:text-4xl`} style={{ color: TOKENS.text }}>Instant Transfer</h3>
+                            <p className={`${body.className} mt-4 text-lg`} style={{ color: TOKENS.muted, maxWidth: 520 }}>
+                                Direct peer-to-peer. No “upload first” nonsense. Your Wi-Fi is the only limit.
+                            </p>
+                        </div>
+
+                        {/* Bar Chart Animation */}
+                        <div className="relative z-10 w-full md:w-80 h-32 flex items-end justify-between gap-2">
+                            {[40, 70, 50, 90, 60, 80].map((h, i) => (
+                                <motion.div
+                                    key={i}
+                                    className="rounded-t-lg w-full"
+                                    initial={{ height: "20%" }}
+                                    whileInView={{ height: `${h}%` }}
+                                    transition={{ duration: 0.8, delay: i * 0.1, repeat: Infinity, repeatType: "reverse" }}
+                                    style={{ background: h > 60 ? TOKENS.lime : "rgba(255,255,255,0.1)" }}
+                                />
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Card 3: Secure */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.12 }}
+                        className="rounded-[32px] border p-8 relative overflow-hidden min-h-[300px] flex flex-col justify-center"
+                        style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.03)" }}
+                    >
+                        <Shield className="w-14 h-14 mb-6" style={{ color: TOKENS.lime }} />
+                        <h3 className={`${heading.className} text-3xl`} style={{ color: TOKENS.text }}>Encrypted</h3>
+                        <p className={`${body.className} mt-3 text-base text-gray-400`} style={{ color: TOKENS.muted }}>
+                            Your data never lives on our servers. It’s just between you and your other device.
+                        </p>
+                    </motion.div>
+
+                    {/* Card 4: Devices */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.18 }}
+                        className="rounded-[32px] border p-8 relative overflow-hidden flex flex-col justify-center items-center text-center min-h-[300px]"
+                        style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.03)" }}
+                    >
+                        <div className="flex -space-x-4 mb-6">
+                            <div className="w-16 h-16 rounded-full border flex items-center justify-center bg-[#222]" style={{ borderColor: "#333", color: TOKENS.muted }}>
+                                <Laptop size={28} />
+                            </div>
+                            <div className="w-16 h-16 rounded-full border flex items-center justify-center font-bold" style={{ background: TOKENS.lime, borderColor: "#333", color: "#0B0C0F" }}>
+                                <Smartphone size={28} />
+                            </div>
+                        </div>
+                        <h3 className={`${heading.className} text-3xl`} style={{ color: TOKENS.text }}>Cross Platform</h3>
+                        <p className={`${body.className} mt-3 text-base`} style={{ color: TOKENS.muted }}>
+                            iOS, Android, Mac, Windows, Linux—if it has a browser, it works.
+                        </p>
                     </motion.div>
                 </div>
             </div>
@@ -216,112 +512,40 @@ function Hero() {
     );
 }
 
-function HowItWorks() {
-    const steps = [
-        {
-            icon: <QrCode className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />,
-            title: "Create or Join",
-            description: "Generate a code or scan QR to connect devices instantly",
-        },
-        {
-            icon: <Upload className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />,
-            title: "Drop Files",
-            description: "Drag & drop or select files. Up to 100MB for free",
-        },
-        {
-            icon: <Download className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />,
-            title: "Done",
-            description: "Files transfer instantly. No waiting, no BS",
-        },
-    ];
-
-    return (
-        <section className="py-12 sm:py-16 md:py-20 lg:py-28 xl:py-36 relative">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20">
-                <div className="text-center mb-10 sm:mb-12 lg:mb-16">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4">
-                        How it works
-                    </h2>
-                    <p className="text-base sm:text-lg lg:text-xl text-[#999] max-w-2xl mx-auto px-4">
-                        Three steps to laziness perfection
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
-                    {steps.map((step, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            className="relative p-6 sm:p-8 lg:p-10 rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 to-transparent hover:border-[#00ff88]/50 transition group"
-                        >
-                            <div className="absolute -top-3 sm:-top-4 left-6 sm:left-8 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#00ff88] text-black flex items-center justify-center font-bold text-lg sm:text-xl">
-                                {i + 1}
-                            </div>
-                            <div className="text-[#00ff88] mb-3 sm:mb-4 mt-3 sm:mt-4">{step.icon}</div>
-                            <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold mb-2">{step.title}</h3>
-                            <p className="text-sm sm:text-base text-[#999]">{step.description}</p>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
-}
 
 function Features() {
     const features = [
-        {
-            icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6" />,
-            title: "Instant Transfer",
-            description: "No upload to cloud. Direct P2P connection for max speed",
-        },
-        {
-            icon: <Shield className="w-5 h-5 sm:w-6 sm:h-6" />,
-            title: "Secure & Private",
-            description: "End-to-end encrypted. Files deleted after session expires",
-        },
-        {
-            icon: <Clock className="w-5 h-5 sm:w-6 sm:h-6" />,
-            title: "No Time Wasted",
-            description: "Average session setup: 5 seconds. That's it.",
-        },
-        {
-            icon: <Users className="w-5 h-5 sm:w-6 sm:h-6" />,
-            title: "Any Device",
-            description: "Phone, tablet, laptop, desktop. They all speak LazyDrop",
-        },
+        { icon: <Zap className="w-6 h-6" />, title: "Instant transfer", description: "Pair + send in seconds. Feels like magic (it’s engineering)." },
+        { icon: <Shield className="w-6 h-6" />, title: "Secure by default", description: "Encrypted transfers. Sessions expire. No permanent storage." },
+        { icon: <Clock className="w-6 h-6" />, title: "No waiting", description: "No unnecessary steps. No clutter. Just the file moving." },
+        { icon: <Users className="w-6 h-6" />, title: "Any device", description: "Phone ↔ laptop ↔ tablet. If it has a browser, it’s in." },
     ];
 
     return (
-        <section id="features" className="py-12 sm:py-16 md:py-20 lg:py-28 xl:py-36 relative">
+        <section id="features" className="py-20 lg:py-32">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20">
-                <div className="text-center mb-10 sm:mb-12 lg:mb-16">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4">
-                        Why people love it
-                    </h2>
-                    <p className="text-base sm:text-lg lg:text-xl text-[#999] max-w-2xl mx-auto px-4">
-                        Built for lazy people, by lazy people
-                    </p>
-                </div>
+                <SectionHeader title="Why people love it" subtitle="Minimal UX, maximum throughput." />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-                    {features.map((feature, i) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {features.map((f, i) => (
                         <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
+                            key={f.title}
+                            initial={{ opacity: 0, y: 18 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            className="p-5 sm:p-6 lg:p-8 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm hover:border-[#00ff88]/50 transition"
+                            transition={{ delay: i * 0.08 }}
+                            className="rounded-[24px] border p-8 hover:bg-white/5 transition-colors"
+                            style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.02)" }}
                         >
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#00ff88]/10 text-[#00ff88] flex items-center justify-center mb-3 sm:mb-4">
-                                {feature.icon}
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ background: "rgba(223,255,0,0.1)", color: TOKENS.lime }}>
+                                {f.icon}
                             </div>
-                            <h3 className="text-base sm:text-lg lg:text-xl font-semibold mb-2">{feature.title}</h3>
-                            <p className="text-xs sm:text-sm lg:text-base text-[#999]">{feature.description}</p>
+                            <h3 className={`${heading.className} text-xl font-bold`} style={{ color: TOKENS.text }}>
+                                {f.title}
+                            </h3>
+                            <p className={`${body.className} mt-3 text-sm leading-relaxed`} style={{ color: TOKENS.muted }}>
+                                {f.description}
+                            </p>
                         </motion.div>
                     ))}
                 </div>
@@ -329,106 +553,58 @@ function Features() {
         </section>
     );
 }
+
+// ---------- Pricing
+// ... inside app/page.jsx ...
+
+// inside app/page.jsx
 
 function Pricing() {
     const plans = [
         {
-            name: "Free",
+            name: "Casual",
             price: "0",
-            description: "Perfect for casual use",
-            features: [
-                "Instant file sharing",
-                "Up to 100MB per file",
-                "10 minute sessions",
-                "No signup required",
-                "Basic support",
-            ],
+            description: "For the occasional drop.",
+            features: ["100 MB per file limit", "15 min Session Duration", "5 Files per Session", "Standard Speed"],
             cta: "Start Free",
-            href: "/receive",
+            href: "/send",
             popular: false,
         },
         {
             name: "Plus",
-            price: "4.99",
-            description: "For power users",
-            features: [
-                "Everything in Free",
-                "Up to 2GB per file",
-                "2 hour sessions",
-                "Transfer history",
-                "Password protection",
-                "Priority speeds",
-                "Multiple devices",
-            ],
-            cta: "Upgrade to Plus",
-            href: "/signup",
-            popular: true,
+            price: "9.99",
+            description: "More power, more time.",
+            features: ["1 GB per file limit", "60 min Session Duration", "50 Files per Session", "Priority Speed"],
+            cta: "Get Plus",
+            href: "/pricing",
+            popular: true, // ✅ NOW POPULAR
         },
+        {
+            name: "Pro",
+            price: "19.99",
+            description: "For heavy duty transfer.",
+            features: ["2 GB per file limit", "120 min Session Duration", "75 Files per Session", "Turbo Speed"],
+            cta: "Go Pro",
+            href: "/pricing",
+            popular: false, // ✅ STANDARD
+        }
     ];
 
     return (
-        <section id="pricing" className="py-12 sm:py-16 md:py-20 lg:py-28 xl:py-36 relative">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20">
-                <div className="text-center mb-10 sm:mb-12 lg:mb-16">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4">
-                        Choose your speed
+        <section id="pricing" className="py-24 relative overflow-hidden">
+            <div className="max-w-[1400px] mx-auto px-6">
+                <div className="text-center mb-16">
+                    <h2 className={`${heading.className} text-4xl md:text-5xl lg:text-6xl font-bold mb-6`} style={{ color: TOKENS.text }}>
+                        SIMPLE PRICING.
                     </h2>
-                    <p className="text-base sm:text-lg lg:text-xl text-[#999] max-w-2xl mx-auto px-4">
-                        Start free, upgrade when you need more
+                    <p className={`${body.className} text-xl`} style={{ color: TOKENS.muted }}>
+                        Most of you won't pay a dime. We're cool with that.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 max-w-5xl mx-auto">
-                    {plans.map((plan, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            className={`relative p-6 sm:p-8 lg:p-10 rounded-2xl ${
-                                plan.popular
-                                    ? "border-2 border-[#00ff88] bg-gradient-to-b from-[#00ff88]/10 to-transparent"
-                                    : "border border-white/10 bg-white/5"
-                            }`}
-                        >
-                            {plan.popular && (
-                                <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1 rounded-full bg-[#00ff88] text-black text-xs sm:text-sm font-semibold">
-                                    POPULAR
-                                </div>
-                            )}
-
-                            <div className="mb-5 sm:mb-6">
-                                <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">{plan.name}</h3>
-                                <p className="text-sm sm:text-base text-[#999] mb-3 sm:mb-4">{plan.description}</p>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-4xl sm:text-5xl lg:text-6xl font-bold">${plan.price}</span>
-                                    {plan.price !== "0" && (
-                                        <span className="text-sm sm:text-base text-[#666]">/month</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <ul className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
-                                {plan.features.map((feature, j) => (
-                                    <li key={j} className="flex items-start gap-2.5 sm:gap-3">
-                                        <Check size={18} className="text-[#00ff88] shrink-0 mt-0.5 sm:w-5 sm:h-5" />
-                                        <span className="text-xs sm:text-sm lg:text-base text-[#ccc]">{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <Link
-                                href={plan.href}
-                                className={`block w-full py-2.5 sm:py-3 lg:py-3.5 text-center rounded-xl text-sm sm:text-base font-semibold transition ${
-                                    plan.popular
-                                        ? "bg-[#00ff88] text-black hover:bg-[#00dd77]"
-                                        : "border border-white/20 text-white hover:bg-white/5"
-                                }`}
-                            >
-                                {plan.cta}
-                            </Link>
-                        </motion.div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+                    {plans.map((plan) => (
+                        <PricingCard key={plan.name} plan={plan} />
                     ))}
                 </div>
             </div>
@@ -436,48 +612,31 @@ function Pricing() {
     );
 }
 
-// FAQ Section - FULLY RESPONSIVE
 function FAQ() {
     const faqs = [
-        {
-            q: "Do I really need to sign up?",
-            a: "Nope! The free tier works instantly with no account. Sign up only if you want history, bigger files, or premium features.",
-        },
-        {
-            q: "How secure is LazyDrop?",
-            a: "All transfers are encrypted. Files are automatically deleted when sessions expire. We don't store anything permanently.",
-        },
-        {
-            q: "What's the file size limit?",
-            a: "Free users can send up to 100MB per file. Plus users get 2GB per file.",
-        },
-        {
-            q: "Can I cancel Plus anytime?",
-            a: "Absolutely! No contracts, no questions asked. Cancel anytime from your account settings.",
-        },
+        { q: "Do I need an account?", a: "No. Free drops work instantly. Create an account only if you want history, larger files, and Plus features." },
+        { q: "Is it secure?", a: "Transfers are encrypted and sessions expire automatically. Effortless *and* safe." },
+        { q: "What’s the file size limit?", a: "Free: up to 100MB per file. Plus: up to 2GB per file." },
+        { q: "Can I cancel Plus?", a: "Anytime. No contracts." },
     ];
 
     return (
-        <section id="faq" className="py-12 sm:py-16 md:py-20 lg:py-28 xl:py-36 relative">
+        <section id="faq" className="py-24">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20">
-                <div className="text-center mb-10 sm:mb-12 lg:mb-16">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4">
-                        Questions? We got you
-                    </h2>
-                </div>
-
-                <div className="space-y-4 sm:space-y-6">
-                    {faqs.map((faq, i) => (
+                <SectionHeader title="FAQ" subtitle="Quick answers. Then go drop files." />
+                <div className="space-y-4">
+                    {faqs.map((f, i) => (
                         <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
+                            key={f.q}
+                            initial={{ opacity: 0, y: 18 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            className="p-5 sm:p-6 lg:p-8 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm"
+                            transition={{ delay: i * 0.06 }}
+                            className="rounded-[24px] border p-8"
+                            style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.02)" }}
                         >
-                            <h3 className="text-base sm:text-lg lg:text-xl font-semibold mb-2">{faq.q}</h3>
-                            <p className="text-sm sm:text-base text-[#999]">{faq.a}</p>
+                            <h3 className={`${heading.className} text-xl`} style={{ color: TOKENS.text }}>{f.q}</h3>
+                            <p className={`${body.className} mt-3 text-base leading-relaxed`} style={{ color: TOKENS.muted }}>{f.a}</p>
                         </motion.div>
                     ))}
                 </div>
@@ -486,122 +645,66 @@ function FAQ() {
     );
 }
 
-// Footer - FULLY RESPONSIVE
 function Footer() {
     return (
-        <footer className="border-t border-white/10 bg-black/50 backdrop-blur-xl">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20 py-8 sm:py-10 lg:py-12">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 lg:gap-10 mb-6 sm:mb-8">
+        <footer className="border-t" style={{ borderColor: TOKENS.line }}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20 py-16">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
                     <div>
-                        <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Product</h4>
-                        <ul className="space-y-2 text-xs sm:text-sm text-[#999]">
-                            <li>
-                                <Link href="#features" className="hover:text-white transition">
-                                    Features
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#pricing" className="hover:text-white transition">
-                                    Pricing
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/receive" className="hover:text-white transition">
-                                    Receive
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/send" className="hover:text-white transition">
-                                    Send
-                                </Link>
-                            </li>
+                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Product</h4>
+                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
+                            <li><Link href="#features" className="hover:text-white transition-colors">Features</Link></li>
+                            <li><Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                            <li><Link href="/receive" className="hover:text-white transition-colors">Receive</Link></li>
+                            <li><Link href="/send" className="hover:text-white transition-colors">Send</Link></li>
                         </ul>
                     </div>
-
                     <div>
-                        <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Company</h4>
-                        <ul className="space-y-2 text-xs sm:text-sm text-[#999]">
-                            <li>
-                                <Link href="/about" className="hover:text-white transition">
-                                    About
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/blog" className="hover:text-white transition">
-                                    Blog
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/contact" className="hover:text-white transition">
-                                    Contact
-                                </Link>
-                            </li>
+                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Company</h4>
+                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
+                            <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
+                            <li><Link href="/blog" className="hover:text-white transition-colors">Blog</Link></li>
+                            <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
                         </ul>
                     </div>
-
                     <div>
-                        <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Legal</h4>
-                        <ul className="space-y-2 text-xs sm:text-sm text-[#999]">
-                            <li>
-                                <Link href="/privacy" className="hover:text-white transition">
-                                    Privacy
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/terms" className="hover:text-white transition">
-                                    Terms
-                                </Link>
-                            </li>
+                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Legal</h4>
+                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
+                            <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link></li>
+                            <li><Link href="/terms" className="hover:text-white transition-colors">Terms</Link></li>
                         </ul>
                     </div>
-
                     <div>
-                        <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Social</h4>
-                        <ul className="space-y-2 text-xs sm:text-sm text-[#999]">
-                            <li>
-                                <a
-                                href="https://twitter.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-white transition"
-                                >
-                                Twitter
-                            </a>
-                        </li>
-                        <li>
-                            <a
-                            href="https://github.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-white transition"
-                            >
-                            GitHub
-                        </a>
-                    </li>
-                </ul>
+                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Social</h4>
+                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
+                            <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Twitter</a></li>
+                            <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div className="pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-6" style={{ borderColor: TOKENS.line }}>
+                    <div className="flex items-center gap-3">
+                        <Image src="/icon.png" alt="LazyDrop" width={40} height={40} className="w-10 h-10" priority />
+                        <div>
+                            <div className={`${heading.className} font-bold text-lg`} style={{ color: TOKENS.text }}>LazyDrop</div>
+                            <div className="text-xs tracking-wide" style={{ color: TOKENS.dim }}>share. no strings.</div>
+                        </div>
+                    </div>
+                    <div className="text-sm text-center sm:text-right" style={{ color: TOKENS.dim }}>
+                        © 2026 LazyDrop. Designed for lazy people.
+                    </div>
+                </div>
             </div>
-        </div>
-
-    <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-        <div className="flex items-center gap-2">
-            <Image src="/icon.png" alt="LazyDrop" width={32} height={32} className="w-10 h-10 sm:w-10 sm:h-10" priority />
-            <span className="font-semibold text-sm sm:text-base">LazyDrop</span>
-        </div>
-        <p className="text-xs sm:text-sm text-[#666] text-center sm:text-right">
-            © 2025 LazyDrop. Too lazy for cables since 2025.
-        </p>
-    </div>
-</div>
-</footer>
-);
+        </footer>
+    );
 }
 
 export default function Home() {
     return (
-        <div className="min-h-screen bg-black text-white">
+        <div className={`${body.className} min-h-screen`} style={{ background: TOKENS.bg, color: TOKENS.text }}>
             <Navbar />
             <Hero />
-            <HowItWorks />
+            <BentoHowItWorks />
             <Features />
             <Pricing />
             <FAQ />

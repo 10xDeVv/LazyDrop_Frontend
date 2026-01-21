@@ -26,7 +26,9 @@ export default function RootLayout({ children }) {
         <body className="antialiased">
         <UserProvider>
             <InstantShareProvider>
-                {children}
+                <SessionExpiredOverlay>
+                    {children}
+                </SessionExpiredOverlay>
             </InstantShareProvider>
         </UserProvider>
         </body>

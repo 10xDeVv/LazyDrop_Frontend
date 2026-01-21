@@ -1,109 +1,74 @@
 // app/receive/page.jsx
 "use client";
-import Link from "next/link";
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/InstantShareContext";
-import { createClient } from "@/lib/supabase";
-import { PLANS } from "@/lib/stripe";
+import QRScanner from "@/components/QRScanner";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-    Copy,
-    CheckCircle,
-    Clock,
-    FileText,
-    Image,
-    Video,
-    Music,
-    FileArchive,
-    File,
-    Download,
-    X,
-    Loader2,
-    Crown,
-    Lock,
+    QrCode, FileText, Image as ImageIcon, Video, Music, FileArchive, File, Download,
+    CheckCircle, Loader2, X, Crown, Lock, AlertCircle, ArrowRight, Wifi
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { Space_Grotesk, Inter } from "next/font/google";
 
-function QRImage({ data }) {
-    if (!data) return <div className="text-xs sm:text-sm text-[#666]">QR unavailable — use code</div>;
-    return <img src={data} alt="QR code" className="block w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] lg:w-[240px] lg:h-[240px]" />;
+const heading = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], display: "swap" });
+const body = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" });
+
+const TOKENS = {
+    bg: "#0E0F12",
+    panel: "#16181D",
+    text: "#F5F5F5",
+    muted: "#9CA3AF",
+    dim: "#6B7280",
+    line: "rgba(255,255,255,0.10)",
+    lime: "#DFFF00",
+};
+
+// --- LOGIC HELPERS ---
+function parseJoinUrl(text) {
+    // Looks for ?code=ABCDEFGH or code=ABCDEFGH
+    try {
+        const url = new URL(text);
+        return {
+            code: (url.searchParams.get("code") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase(),
+            secret: url.searchParams.get("secret") || undefined,
+        };
+    } catch {
+        const code = (text.match(/code=([A-Za-z0-9]{8})/i)?.[1] || "").toUpperCase();
+        return { code, secret: undefined };
+    }
 }
 
 const getFileIcon = (fileName) => {
-    const ext = fileName.split(".").pop().toLowerCase();
-    const iconSize = "w-3.5 h-3.5 sm:w-4 sm:h-4";
-
-    if (["pdf", "doc", "docx", "txt"].includes(ext))
-        return <FileText className={iconSize} />;
-    if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext))
-        return <Image className={iconSize} />;
-    if (["mp4", "mov", "avi", "mkv", "webm"].includes(ext))
-        return <Video className={iconSize} />;
-    if (["mp3", "wav", "ogg", "flac"].includes(ext))
-        return <Music className={iconSize} />;
-    if (["zip", "rar", "7z", "tar", "gz"].includes(ext))
-        return <FileArchive className={iconSize} />;
-
-    return <File className={iconSize} />;
+    const ext = fileName?.split(".").pop().toLowerCase() || "";
+    const iconClass = "w-6 h-6";
+    if (["pdf", "doc", "docx", "txt"].includes(ext)) return <FileText className={`${iconClass} text-blue-400`} />;
+    if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext)) return <ImageIcon className={`${iconClass} text-purple-400`} />;
+    if (["mp4", "mov", "avi", "mkv", "webm"].includes(ext)) return <Video className={`${iconClass} text-red-400`} />;
+    if (["mp3", "wav", "ogg", "flac"].includes(ext)) return <Music className={`${iconClass} text-yellow-400`} />;
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return <FileArchive className={`${iconClass} text-orange-400`} />;
+    return <File className={`${iconClass} text-gray-400`} />;
 };
 
-// Password Modal Component
-function PasswordModal({ onSubmit, onClose }) {
+function PasswordPromptModal({ onSubmit, onClose }) {
     const [password, setPassword] = useState("");
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (password) {
-            onSubmit(password);
-        }
-    };
+    const handleSubmit = (e) => { e.preventDefault(); if(password.length >= 4) onSubmit(password); };
 
     return (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-[#111] border border-[#222] rounded-xl p-6 sm:p-8 w-full max-w-md">
-                <div className="flex items-center gap-3 mb-5 sm:mb-6">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#00ff88]/10 text-[#00ff88] flex items-center justify-center">
-                        <Lock size={18} className="sm:w-5 sm:h-5" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg sm:text-xl font-semibold">Set Session Password</h3>
-                        <p className="text-xs sm:text-sm text-[#999]">Protect your session with a password</p>
-                    </div>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-xs sm:text-sm font-medium mb-2">Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter password"
-                            required
-                            minLength={4}
-                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-white/5 border border-white/10 rounded-lg focus:border-[#00ff88] focus:outline-none transition"
-                        />
-                        <p className="mt-1 text-xs text-[#666]">
-                            Minimum 4 characters. Sender will need this to join.
-                        </p>
-                    </div>
-
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+            <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} className="bg-[#16181D] border border-white/10 rounded-3xl p-8 w-full max-w-md shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#DFFF00] to-transparent" />
+                <h3 className={`${heading.className} text-xl font-bold mb-4`}>Password Required</h3>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Enter password" autoFocus className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl focus:border-[#DFFF00] text-white" />
                     <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-white/20 rounded-lg hover:bg-white/5 transition"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-[#00ff88] text-black rounded-lg font-medium hover:bg-[#00dd77] transition"
-                        >
-                            Set Password
-                        </button>
+                        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 text-sm font-bold border border-white/10 rounded-xl text-gray-300">Cancel</button>
+                        <button type="submit" className="flex-1 px-4 py-3 text-sm font-bold bg-[#DFFF00] text-black rounded-xl hover:bg-[#ccee00]">Unlock</button>
                     </div>
                 </form>
-            </div>
+            </motion.div>
         </div>
     );
 }
@@ -111,369 +76,204 @@ function PasswordModal({ onSubmit, onClose }) {
 export default function ReceivePage() {
     const {
         currentSession,
-        createPairing,
-        timeLeft,
-        formatTime,
-        autoDownload,
-        toggleAutoDownload,
         isConnected,
+        isConnecting,
+        showToast,
+        leaveRoom,
         files,
         formatFileSize,
         downloadFile,
         downloadAllFiles,
-        leaveRoom,
-        showToast,
-        bus,
+        autoDownload,
+        toggleAutoDownload
     } = useApp();
 
-    const supabase = createClient();
-    const [user, setUser] = useState(null);
-    const [subscription, setSubscription] = useState(null);
-    const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [sessionPassword, setSessionPassword] = useState(null);
+    const [code, setCode] = useState("");
+    const [modalOpen, setModalOpen] = useState(false);
+    const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+    const inputRef = useRef(null);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
 
     useEffect(() => {
-        const loadUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                setUser(session.user);
-
-                const { data: subData } = await supabase
-                    .from("subscriptions")
-                    .select("*")
-                    .eq("user_id", session.user.id)
-                    .eq("status", "active")
-                    .single();
-
-                setSubscription(subData);
-            }
-        };
-
-        loadUser();
-    }, []);
+        const c = (searchParams.get("code") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+        if (c.length === 8) setCode(c.slice(0,4) + "-" + c.slice(4));
+    }, [searchParams]);
 
     useEffect(() => {
-        const off = bus.on("phoneJoined", () => {});
-        return off;
-    }, [bus]);
-
-    const receivedFiles = files.filter(
-        (f) => f.status === "uploaded" || f.status === "downloaded"
-    );
-
-    const copyCodeToClipboard = () => {
-        if (currentSession?.codeDisplay) {
-            navigator.clipboard.writeText(currentSession.codeDisplay);
-            showToast("Code copied to clipboard!");
+        if (!isConnected && !modalOpen && inputRef.current) {
+            const timer = setTimeout(() => inputRef.current?.focus(), 300);
+            return () => clearTimeout(timer);
         }
+    }, [isConnected, modalOpen]);
+
+    // Handle Formatting (ABCD-EFGH)
+    const handleInput = (e) => {
+        const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        let formatted = raw;
+        if (raw.length > 4) {
+            formatted = raw.slice(0, 4) + "-" + raw.slice(4, 8);
+        }
+        setCode(formatted);
     };
 
-    const isPremium = subscription?.plan === "plus";
-    const maxFileSize = isPremium
-        ? PLANS.PLUS.features.maxFileSize
-        : PLANS.FREE.features.maxFileSize;
-    const sessionDuration = isPremium
-        ? PLANS.PLUS.features.sessionDuration
-        : PLANS.FREE.features.sessionDuration;
+    const handleJoin = async (e) => {
+        if (e) e.preventDefault();
+        const cleanCode = code.replace(/[^A-Z0-9]/g, "");
+        if (cleanCode.length === 8) router.push(`/session/${cleanCode}`);
+    };
 
-    const handleCreatePairing = async () => {
-        if (isPremium && !sessionPassword) {
-            setShowPasswordModal(true);
-        } else {
-            await createPairing();
+    const onScanResult = async (text) => {
+        const { code: scanned } = parseJoinUrl(text);
+        if (!scanned || scanned.length !== 8) {
+            showToast("Invalid QR Code (Expected 8 chars)", "error");
+            return;
         }
+        setCode(scanned);
+        setModalOpen(false);
+        router.push(`/session/${scanned}`);
     };
 
     const handlePasswordSubmit = async (password) => {
-        setSessionPassword(password);
-        setShowPasswordModal(false);
-        await createPairing();
-        showToast("Password protection enabled");
+        setShowPasswordPrompt(false);
+        const cleanCode = code.replace(/[^A-Z0-9]/g, "");
+        router.push(`/session/${cleanCode}?pw=${encodeURIComponent(password)}`);
     };
 
-    const formatBytes = (bytes) => {
-        if (bytes >= 1024 * 1024 * 1024) {
-            return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`;
-        }
-        return `${(bytes / (1024 * 1024)).toFixed(0)}MB`;
-    };
+    const receivedFiles = files.filter(f => f.status === "uploaded" || f.status === "downloaded");
 
     return (
-        <div className="min-h-screen bg-black text-white">
+        <div className={`${body.className} min-h-screen flex flex-col`} style={{ background: TOKENS.bg, color: TOKENS.text }}>
             <Navbar />
-            <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pt-20 sm:pt-24 lg:pt-28">
-                <div className="min-h-[70vh]" id="receive">
-                    <div className="text-center mb-8 sm:mb-12 mt-7 sm:mt-15 lg:mb-16">
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-normal leading-[1.15] tracking-tight mb-3 sm:mb-4 lg:mb-6">
-                            Ready to receive
-                        </h1>
 
-                        <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-[#999] leading-relaxed max-w-[600px] mx-auto px-4">
-                            Share the code or QR with the sending device
-                        </p>
-                    </div>
+            <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 relative pt-24 pb-12 overflow-hidden">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#DFFF00]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
 
-                    {/* Premium Upgrade Banner */}
-                    {!isPremium && !currentSession && (
-                        <div className="mb-6 sm:mb-8 p-4 sm:p-5 lg:p-6 rounded-xl border border-[#00ff88]/30 bg-gradient-to-r from-[#00ff88]/10 to-purple-500/10 backdrop-blur-sm">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                                <div className="flex items-start gap-2.5 sm:gap-3">
-                                    <Crown size={20} className="text-[#00ff88] shrink-0 sm:w-6 sm:h-6" />
-                                    <div>
-                                        <h3 className="text-sm sm:text-base font-semibold mb-1">
-                                            Want bigger files & longer sessions?
-                                        </h3>
-                                        <p className="text-xs sm:text-sm text-[#999]">
-                                            Upgrade to Plus: 2GB files, 2hr sessions, password protection
-                                        </p>
-                                    </div>
-                                </div>
-                                <Link
-                                    href="/pricing"
-                                    className="shrink-0 w-full sm:w-auto px-5 sm:px-6 py-2 sm:py-2.5 bg-[#00ff88] text-black text-sm sm:text-base rounded-lg font-medium hover:bg-[#00dd77] transition text-center whitespace-nowrap"
-                                >
-                                    Upgrade
-                                </Link>
-                            </div>
-                        </div>
-                    )}
+                <div className="w-full max-w-xl relative z-10">
+                    <AnimatePresence mode="wait">
 
-                    {/* Leave button when session active */}
-                    {currentSession && (
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-                            <div className="text-xs sm:text-sm text-[#666]">
-                                Session: <span className="text-white font-mono text-sm sm:text-base">{currentSession?.codeDisplay}</span>
-                                {sessionPassword && (
-                                    <span className="ml-2 sm:ml-3 inline-flex items-center gap-1 text-[#00ff88]">
-                                        <Lock size={12} className="sm:w-3.5 sm:h-3.5" />
-                                        Protected
-                                    </span>
-                                )}
-                            </div>
-                            <button
-                                onClick={leaveRoom}
-                                className="flex items-center gap-2 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 rounded bg-[#111] border border-[#222] text-white text-xs sm:text-sm font-medium hover:bg-[#1a1a1a] hover:border-red-500 hover:text-red-400 transition"
-                            >
-                                <X size={14} className="sm:w-4 sm:h-4" />
-                                End Session
-                            </button>
-                        </div>
-                    )}
+                        {/* STATE 1: INPUT */}
+                        {!isConnected && !isConnecting && (
+                            <motion.div key="input" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="text-center">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-gray-400 mb-8"><Download size={14} /> Receive Mode</div>
+                                <h1 className={`${heading.className} text-4xl sm:text-6xl font-bold mb-4`}>Enter Key</h1>
+                                <p className="text-gray-400 mb-10 text-lg">ABCD-EFGH from sender</p>
 
-                    {!currentSession && (
-                        <div className="bg-[#111] border border-[#222] rounded-lg p-5 sm:p-8 lg:p-12 text-center transition hover:bg-[#1a1a1a] hover:border-[#666]">
-                            <div className="flex items-center justify-center gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-[rgba(255,215,0,0.1)] text-[#ffd700] flex items-center justify-center">
-                                    <Clock size={18} className="sm:w-5 sm:h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl leading-tight font-normal mb-1 sm:mb-2">
-                                        Create Pairing Session
-                                    </h3>
-                                    <p className="text-xs sm:text-sm lg:text-base text-[#999] leading-relaxed">
-                                        {isPremium ? (
-                                            <>
-                                                Plus Plan: Up to {formatBytes(maxFileSize)} per file,{" "}
-                                                {sessionDuration / 60} minute sessions
-                                            </>
-                                        ) : (
-                                            <>
-                                                Free: Up to {formatBytes(maxFileSize)} per file,{" "}
-                                                {sessionDuration / 60} minute sessions
-                                            </>
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
+                                <form onSubmit={handleJoin} className="relative max-w-sm mx-auto group">
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-[#DFFF00]/20 to-[#DFFF00]/0 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500 pointer-events-none" />
+                                    <input
+                                        ref={inputRef}
+                                        type="text"
+                                        value={code}
+                                        onChange={handleInput}
+                                        placeholder="ABCD-EFGH"
+                                        maxLength={9} // 8 chars + hyphen
+                                        autoComplete="off"
+                                        spellCheck="false"
+                                        className={`w-full bg-[#16181D] border-2 text-center text-4xl sm:text-5xl font-mono font-bold tracking-widest py-6 rounded-2xl focus:outline-none focus:border-[#DFFF00] placeholder-gray-700 transition-all uppercase shadow-2xl ${code.length > 0 ? "border-white/20" : "border-white/10"}`}
+                                        style={{ color: code.length === 9 ? TOKENS.lime : "white" }}
+                                    />
+                                    <button type="submit" disabled={code.length < 8} className="absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-xl bg-[#DFFF00] text-black disabled:opacity-0 disabled:translate-x-4 transition-all hover:scale-105">
+                                        <ArrowRight size={24} />
+                                    </button>
+                                </form>
 
-                            <button
-                                onClick={handleCreatePairing}
-                                className="inline-flex items-center justify-center px-6 sm:px-10 lg:px-12 py-3 sm:py-4 lg:py-5 rounded text-sm sm:text-base lg:text-lg text-black font-medium bg-[#00ff88] border border-[#00ff88] hover:opacity-90 transition whitespace-nowrap"
-                            >
-                                <CheckCircle size={18} className="mr-2 sm:w-5 sm:h-5" />
-                                Create Pairing
-                            </button>
-
-                            {isPremium && (
-                                <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-[#00ff88] flex items-center justify-center gap-2">
-                                    <Crown size={14} className="sm:w-4 sm:h-4" />
-                                    Premium features enabled
-                                </p>
-                            )}
-                        </div>
-                    )}
-
-                    {currentSession && !isConnected && (
-                        <div className="bg-[#111] border border-[#222] rounded-lg p-5 sm:p-8 lg:p-12 text-center transition hover:bg-[#1a1a1a] hover:border-[#666]">
-                            <div className="flex items-center justify-center gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-[rgba(0,255,136,0.1)] text-[#00ff88] flex items-center justify-center">
-                                    <CheckCircle size={18} className="sm:w-5 sm:h-5" />
-                                </div>
-                                <h3 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl leading-tight font-normal">
-                                    Session Active
-                                </h3>
-                            </div>
-
-                            <div className="text-center my-6 sm:my-10 lg:my-16">
-                                <div className="inline-block p-4 sm:p-6 lg:p-8 bg-white rounded-lg my-4 sm:my-6 lg:my-8 border border-[#222]">
-                                    <QRImage data={currentSession.qrCodeData} />
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 lg:gap-4">
-                                    <div
-                                        id="codeDisplay"
-                                        className="font-mono text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-semibold tracking-[0.1em] text-white mt-3 sm:mt-6 lg:mt-8 mb-1 sm:mb-2"
-                                    >
-                                        {currentSession.codeDisplay}
-                                    </div>
-                                    <button
-                                        onClick={copyCodeToClipboard}
-                                        className="p-2 sm:p-2.5 rounded bg-[#111] border border-[#222] hover:bg-[#1a1a1a] transition"
-                                        title="Copy code"
-                                    >
-                                        <Copy size={18} className="sm:w-5 sm:h-5" />
+                                <div className="mt-10 flex justify-center gap-4">
+                                    <button onClick={() => setModalOpen(true)} className="px-6 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center gap-2 text-sm font-medium">
+                                        <QrCode size={18} /> Scan QR
                                     </button>
                                 </div>
+                            </motion.div>
+                        )}
 
-                                {sessionPassword && (
-                                    <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 rounded-lg bg-[#00ff88]/10 border border-[#00ff88]/30">
-                                        <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#00ff88]">
-                                            <Lock size={14} className="sm:w-4 sm:h-4" />
-                                            Password: <span className="font-mono font-semibold">{sessionPassword}</span>
+                        {/* STATE 2: CONNECTING */}
+                        {isConnecting && !isConnected && (
+                            <motion.div key="connecting" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center py-20">
+                                <div className="relative w-32 h-32 mb-10 flex items-center justify-center">
+                                    <motion.div className="absolute inset-0 rounded-full border border-[#DFFF00]/30" animate={{ scale: [1, 1.5], opacity: [0.5, 0] }} transition={{ duration: 2, repeat: Infinity }} />
+                                    <motion.div className="absolute inset-0 rounded-full border border-[#DFFF00]/30" animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 2, delay: 0.5, repeat: Infinity }} />
+                                    <div className="w-16 h-16 bg-[#DFFF00]/10 rounded-full flex items-center justify-center border border-[#DFFF00]"><Wifi className="w-8 h-8 text-[#DFFF00] animate-pulse" /></div>
+                                </div>
+                                <h2 className={`${heading.className} text-3xl font-bold mb-2`}>Searching...</h2>
+                                <p className="text-gray-400 font-mono text-sm">Targeting Session: {code}</p>
+                            </motion.div>
+                        )}
+
+                        {/* STATE 3: CONNECTED */}
+                        {isConnected && (
+                            <motion.div key="connected" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-3 h-3 bg-[#DFFF00] rounded-full animate-pulse shadow-[0_0_10px_#DFFF00]" />
+                                        <div>
+                                            <span className="text-sm font-bold uppercase tracking-widest text-white block">Connected</span>
+                                            <span className="text-xs text-gray-500 font-mono">{currentSession?.codeDisplay}</span>
                                         </div>
                                     </div>
-                                )}
-
-                                <div className="text-xs sm:text-sm text-[#666] flex items-center justify-center gap-2 mt-3 sm:mt-4">
-                                    <Clock size={14} className="sm:w-4 sm:h-4" />
-                                    Expires in <span id="timeLeft">{formatTime(timeLeft)}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-center gap-3 sm:gap-4 lg:gap-6 my-6 sm:my-10 lg:my-12">
-                                <label htmlFor="autoDownload" className="text-xs sm:text-sm text-[#999]">
-                                    Auto-download files
-                                </label>
-                                <div
-                                    role="switch"
-                                    aria-checked={autoDownload}
-                                    tabIndex={0}
-                                    onClick={toggleAutoDownload}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                            e.preventDefault();
-                                            toggleAutoDownload();
-                                        }
-                                    }}
-                                    className={`relative w-11 h-6 sm:w-12 sm:h-6 border rounded-full cursor-pointer transition ${
-                                        autoDownload
-                                            ? "bg-[#00ff88] border-[#00ff88]"
-                                            : "bg-[#111] border-[#222]"
-                                    }`}
-                                >
-                                    <div
-                                        className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] sm:w-5 sm:h-5 rounded-full transition ${
-                                            autoDownload ? "translate-x-5 sm:translate-x-6 bg-black" : "translate-x-0 bg-white"
-                                        }`}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {isConnected && (
-                        <div id="connectedState">
-                            <div className="bg-[#111] border border-[#222] rounded-lg p-5 sm:p-6 lg:p-8 transition hover:bg-[#1a1a1a] hover:border-[#666]">
-                                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-[rgba(0,255,136,0.1)] text-[#00ff88] flex items-center justify-center shrink-0">
-                                        <CheckCircle size={18} className="sm:w-5 sm:h-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl sm:text-2xl lg:text-3xl leading-tight font-normal">
-                                            Connected
-                                        </h3>
-                                        <p className="text-xs sm:text-sm lg:text-base text-[#999] leading-relaxed">
-                                            Devices are paired and ready for file transfer
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-[#111] border border-[#222] rounded-lg p-5 sm:p-6 lg:p-8 mt-6 sm:mt-8 transition hover:bg-[#1a1a1a] hover:border-[#666]">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
-                                    <h3 className="text-lg sm:text-xl lg:text-2xl font-normal">Inbox</h3>
-                                    {receivedFiles.length > 1 && (
-                                        <button
-                                            onClick={downloadAllFiles}
-                                            className="flex items-center gap-2 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 rounded bg-[#00ff88] text-black font-medium text-xs sm:text-sm hover:opacity-90 transition"
-                                        >
-                                            <Download size={14} className="sm:w-4 sm:h-4" />
-                                            <span className="hidden sm:inline">
-                                                Download All ({receivedFiles.length})
-                                            </span>
-                                            <span className="sm:hidden">All ({receivedFiles.length})</span>
-                                        </button>
-                                    )}
+                                    <button onClick={leaveRoom} className="text-xs text-red-400 hover:text-white transition-colors border border-red-500/30 px-3 py-1.5 rounded-lg hover:bg-red-500/20">Leave</button>
                                 </div>
 
-                                <div id="inboxList" className="my-6 sm:my-10 lg:my-12">
-                                    {receivedFiles.length === 0 ? (
-                                        <div className="text-center text-[#666] py-8 sm:py-10 flex flex-col items-center gap-2 sm:gap-3">
-                                            <Loader2 size={28} className="animate-spin sm:w-8 sm:h-8" />
-                                            <p className="text-sm sm:text-base">Waiting for files...</p>
-                                        </div>
-                                    ) : (
-                                        receivedFiles.map((file) => (
-                                            <div
-                                                key={file.id}
-                                                className="flex items-center justify-between p-3 sm:p-4 lg:p-6 bg-[#111] border border-[#222] rounded mb-3 sm:mb-4 transition hover:bg-[#1a1a1a] hover:border-[#666]"
-                                            >
-                                                <div className="flex items-center gap-2.5 sm:gap-3 lg:gap-4 min-w-0 flex-1">
-                                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-[#00ff88] text-black flex items-center justify-center shrink-0">
-                                                        {getFileIcon(file.name)}
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <h4 className="text-xs sm:text-sm font-medium mb-0.5 truncate">
-                                                            {file.name}
-                                                        </h4>
-                                                        <p className="text-xs text-[#666]">
-                                                            {formatFileSize(file.size)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 shrink-0 ml-2">
-                                                    {file.status === "uploaded" ? (
-                                                        <button
-                                                            onClick={() => downloadFile(file.id)}
-                                                            className="inline-flex items-center justify-center px-2.5 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded bg-[#111] border border-[#222] text-white text-xs sm:text-sm font-medium hover:bg-[#1a1a1a] hover:border-[#666] transition"
-                                                        >
-                                                            <Download size={14} className="sm:mr-2 sm:w-4 sm:h-4" />
-                                                            <span className="hidden sm:inline">Download</span>
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-xs text-[#666] flex items-center gap-1">
-                                                            <CheckCircle size={12} className="sm:w-3.5 sm:h-3.5" />
-                                                            <span className="hidden sm:inline">Downloaded</span>
-                                                        </span>
-                                                    )}
-                                                </div>
+                                <div className="bg-[#16181D] border border-white/10 rounded-[32px] overflow-hidden min-h-[400px] flex flex-col shadow-2xl">
+                                    <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                        <h3 className={`${heading.className} text-xl font-bold`}>Inbox</h3>
+                                        <div onClick={toggleAutoDownload} className="flex items-center gap-2 cursor-pointer group">
+                                            <span className="text-xs font-bold uppercase text-gray-500 group-hover:text-white transition">Auto-Save</span>
+                                            <div className={`w-10 h-5 rounded-full relative transition-colors ${autoDownload ? "bg-[#DFFF00]" : "bg-white/10"}`}>
+                                                <div className={`absolute top-1 w-3 h-3 rounded-full bg-black transition-transform ${autoDownload ? "left-6" : "left-1"}`} />
                                             </div>
-                                        ))
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+                                        {receivedFiles.length === 0 ? (
+                                            <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                                                <Loader2 className="w-8 h-8 text-gray-600 animate-spin mb-4" />
+                                                <h3 className="text-xl font-bold text-white mb-2">Waiting for Sender</h3>
+                                                <p className="text-gray-500 text-sm">Files will appear here...</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {receivedFiles.map((file) => (
+                                                    <motion.div key={file.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-between p-4 bg-[#0E0F12] border border-white/5 rounded-2xl group hover:border-[#DFFF00]/30 transition-colors">
+                                                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0">{getFileIcon(file.name)}</div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <h4 className="text-sm font-bold text-white truncate mb-1">{file.name}</h4>
+                                                                <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="ml-4">
+                                                            {file.status === "uploaded" ? (
+                                                                <button onClick={() => downloadFile(file.id)} className="p-3 rounded-xl bg-white/5 hover:bg-[#DFFF00] hover:text-black transition-all group/btn" title="Download">
+                                                                    <Download size={20} className="text-gray-400 group-hover/btn:text-black" />
+                                                                </button>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 text-[#DFFF00]"><CheckCircle size={18} /><span className="text-xs font-bold hidden sm:inline">Saved</span></div>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {receivedFiles.length > 1 && (
+                                        <div className="p-4 border-t border-white/5 bg-white/[0.02]">
+                                            <button onClick={downloadAllFiles} className="w-full py-4 rounded-xl bg-[#DFFF00] text-black font-bold flex items-center justify-center gap-2 hover:bg-[#ccee00] transition">
+                                                <Download size={20} /> Download All ({receivedFiles.length})
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
-                {showPasswordModal && (
-                    <PasswordModal
-                        onSubmit={handlePasswordSubmit}
-                        onClose={() => setShowPasswordModal(false)}
-                    />
-                )}
-            </div>
+                {modalOpen && <QRScanner onResult={onScanResult} onClose={() => setModalOpen(false)} />}
+                {showPasswordPrompt && <PasswordPromptModal onSubmit={handlePasswordSubmit} onClose={() => setShowPasswordPrompt(false)} />}
+            </main>
         </div>
     );
 }

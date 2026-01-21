@@ -1,191 +1,125 @@
+// components/Navbar.jsx
 "use client";
-import Link from "next/link";
+
 import { useState, useEffect } from "react";
-import { Menu, X as CloseIcon, Settings } from "lucide-react";
-import { motion } from "framer-motion";
-import { createClient } from "@/lib/supabase";
-import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X, ArrowRight, Zap, Download } from "lucide-react";
 
 export default function Navbar() {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [user, setUser] = useState(null);
-    const supabase = createClient();
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const pathname = usePathname();
+
+    const isLanding = pathname === "/";
+    const isSession = pathname.includes("/session");
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user || null);
-        });
+        const handleScroll = () => setIsScrolled(window.scrollY > 20);
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    useEffect(() => setIsMobileOpen(false), [pathname]);
+
+    const navLinks = [
+        { name: "How it works", href: "/#how-it-works" },
+        { name: "Features", href: "/#features" },
+        { name: "Pricing", href: "/#pricing" },
+    ];
+
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 backdrop-blur-xl bg-black/50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16 sm:h-20">
+        <>
+            <motion.nav
+                initial={{ y: -100 }}
+                animate={{ y: 0 }}
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+                    isScrolled
+                        ? "bg-[#0E0F12]/80 backdrop-blur-xl border-b border-white/5 py-4"
+                        : "bg-transparent py-6"
+                }`}
+            >
+                <div className="max-w-[1400px] mx-auto px-6 flex items-center justify-between">
+
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2 group">
-                        <Image src="/icon.png" alt="LazyDrop" width={32} height={32} className="w-10 h-10 sm:w-10 sm:h-10" priority />
-                        <span className="text-lg sm:text-xl font-semibold text-white group-hover:text-[#00ff88] transition">
-                            LazyDrop
+                    <Link href="/" className="flex items-center gap-2 group z-50 relative">
+                        <div className="w-8 h-8 bg-[#DFFF00] rounded-lg flex items-center justify-center text-black font-bold text-xl group-hover:rotate-12 transition-transform">
+                            <Zap size={18} fill="black" />
+                        </div>
+                        <span className="font-bold text-xl tracking-tight text-white group-hover:text-[#DFFF00] transition-colors font-heading">
+                            Lazydrop
                         </span>
                     </Link>
 
-                    {/* Desktop Nav */}
+                    {/* Center Links - Landing Only */}
                     <div className="hidden md:flex items-center gap-8">
-                        {/* Product Links Group */}
-                        <div className="flex items-center gap-6 px-4 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                        {isLanding && navLinks.map((link) => (
+                            <Link
+                                key={link.name}
+                                href={link.href}
+                                className="text-sm font-medium text-gray-400 hover:text-white transition-colors relative group"
+                            >
+                                {link.name}
+                                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#DFFF00] transition-all group-hover:w-full" />
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Right Actions */}
+                    {!isSession && (
+                        <div className="hidden md:flex items-center gap-6">
                             <Link
                                 href="/receive"
-                                className="text-sm text-[#999] hover:text-white transition"
+                                className="text-sm font-bold text-white hover:text-[#DFFF00] transition-colors flex items-center gap-2"
                             >
-                                Receive
+                                <Download size={16} />
+                                Join a session
                             </Link>
-                            <div className="w-px h-4 bg-white/20" />
+
                             <Link
                                 href="/send"
-                                className="text-sm text-[#999] hover:text-white transition"
+                                className="px-6 py-2.5 bg-[#DFFF00] text-black rounded-full font-bold text-sm hover:bg-[#ccee00] hover:shadow-[0_0_20px_rgba(223,255,0,0.3)] transition-all flex items-center gap-2"
                             >
-                                Send
+                                Start a Drop
+                                <ArrowRight size={16} />
                             </Link>
                         </div>
+                    )}
 
-                        {/* Info Links */}
-                        <Link
-                            href="/#features"
-                            className="text-sm text-[#999] hover:text-white transition"
-                        >
-                            Features
-                        </Link>
-                        <Link
-                            href="/#pricing"
-                            className="text-sm text-[#999] hover:text-white transition"
-                        >
-                            Pricing
-                        </Link>
-                        <Link
-                            href="/#faq"
-                            className="text-sm text-[#999] hover:text-white transition"
-                        >
-                            FAQ
-                        </Link>
-                    </div>
-
-                    {/* Auth Buttons */}
-                    <div className="hidden md:flex items-center gap-3">
-                        {user ? (
-                            <Link
-                                href="/dashboard"
-                                className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:text-[#00ff88] transition"
-                            >
-                                <Settings size={16} />
-                                Dashboard
-                            </Link>
-                        ) : (
-                            <>
-                                <Link
-                                    href="/login"
-                                    className="px-4 py-2 text-sm text-white hover:text-[#00ff88] transition"
-                                >
-                                    Log In
-                                </Link>
-                                <Link
-                                    href="/signup"
-                                    className="px-6 py-2.5 text-sm font-medium text-black bg-[#00ff88] rounded-lg hover:bg-[#00dd77] transition"
-                                >
-                                    Sign Up
-                                </Link>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Mobile Menu Button */}
+                    {/* Mobile Toggle */}
                     <button
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-2 text-white"
+                        className="md:hidden text-white z-50 relative p-2"
+                        onClick={() => setIsMobileOpen(!isMobileOpen)}
                     >
-                        {mobileMenuOpen ? <CloseIcon size={24} /> : <Menu size={24} />}
+                        {isMobileOpen ? <X /> : <Menu />}
                     </button>
                 </div>
-            </div>
+            </motion.nav>
 
             {/* Mobile Menu */}
-            {mobileMenuOpen && (
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="md:hidden border-t border-white/10 bg-black/95 backdrop-blur-xl"
-                >
-                    <div className="px-4 py-6 space-y-4">
-                        {/* Product Links */}
-                        <div className="pb-4 border-b border-white/10">
-                            <p className="text-xs text-[#666] uppercase tracking-wider mb-3">Product</p>
-                            <Link
-                                href="/receive"
-                                className="block py-2 text-[#999] hover:text-white transition"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Receive
-                            </Link>
-                            <Link
-                                href="/send"
-                                className="block py-2 text-[#999] hover:text-white transition"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Send
-                            </Link>
-                        </div>
+            <AnimatePresence>
+                {isMobileOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="fixed inset-0 z-40 bg-[#0E0F12] pt-32 px-6 md:hidden flex flex-col"
+                    >
+                        {/* Mobile Menu Content (Same logic) */}
+                        <div className="flex flex-col gap-8">
+                            {isLanding ? navLinks.map((link, i) => (
+                                <Link key={link.name} href={link.href} className="text-3xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>{link.name}</Link>
+                            )) : <Link href="/" className="text-3xl font-bold text-white">Home</Link>}
 
-                        {/* Info Links */}
-                        <Link
-                            href="/#features"
-                            className="block text-[#999] hover:text-white transition"
-                            onClick={() => setMobileMenuOpen(false)}
-                        >
-                            Features
-                        </Link>
-                        <Link
-                            href="/#pricing"
-                            className="block text-[#999] hover:text-white transition"
-                            onClick={() => setMobileMenuOpen(false)}
-                        >
-                            Pricing
-                        </Link>
-                        <Link
-                            href="/#faq"
-                            className="block text-[#999] hover:text-white transition"
-                            onClick={() => setMobileMenuOpen(false)}
-                        >
-                            FAQ
-                        </Link>
+                            <div className="h-px bg-white/10 my-4" />
 
-                        {/* Auth Buttons */}
-                        <div className="pt-4 border-t border-white/10 space-y-3">
-                            {user ? (
-                                <Link
-                                    href="/dashboard"
-                                    className="block w-full px-4 py-2.5 text-center text-white border border-white/20 rounded-lg hover:border-white/40 transition"
-                                >
-                                    Dashboard
-                                </Link>
-                            ) : (
-                                <>
-                                    <Link
-                                        href="/login"
-                                        className="block w-full px-4 py-2.5 text-center text-white border border-white/20 rounded-lg hover:border-white/40 transition"
-                                    >
-                                        Log In
-                                    </Link>
-                                    <Link
-                                        href="/signup"
-                                        className="block w-full px-4 py-2.5 text-center text-black bg-[#00ff88] rounded-lg font-medium hover:bg-[#00dd77] transition"
-                                    >
-                                        Sign Up
-                                    </Link>
-                                </>
-                            )}
+                            <Link href="/receive" className="text-xl font-bold text-gray-400" onClick={() => setIsMobileOpen(false)}>Join a session</Link>
+                            <Link href="/send" className="py-4 bg-[#DFFF00] text-black rounded-xl font-bold text-center text-lg" onClick={() => setIsMobileOpen(false)}>Start a Drop</Link>
                         </div>
-                    </div>
-                </motion.div>
-            )}
-        </nav>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 }
