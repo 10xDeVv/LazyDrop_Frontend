@@ -108,6 +108,7 @@ export default function InstantShareProvider({ children }) {
     const [currentSession, setCurrentSession] = useState(null);
     const [myParticipantId, setMyParticipantId] = useState(null);
     const myParticipantIdRef = useRef(null);
+    const pendingFilesRef = useRef([]);
 
     // Keep ref in sync
     useEffect(() => {
@@ -291,6 +292,7 @@ export default function InstantShareProvider({ children }) {
             // await endSession();
         }
     }, [currentSession, showToast]);
+
 
     const hardReset = useCallback(() => {
         setCurrentSession(null);
@@ -892,12 +894,25 @@ export default function InstantShareProvider({ children }) {
     showToast("All files downloaded!");
   }, [currentSession, files, downloadFile, showToast]);
 
+    const queueFiles = useCallback((fileList) => {
+        pendingFilesRef.current = Array.isArray(fileList) ? fileList : [];
+    }, []);
+
+    const flushQueuedFiles = useCallback(async () => {
+        if (!currentSession?.id) return;
+        const queued = pendingFilesRef.current;
+        if (!queued || queued.length === 0) return;
+
+        pendingFilesRef.current = [];
+
+        // now upload using your existing flow
+        await processFiles(queued);
+    }, [currentSession?.id, processFiles]);
+
     const toggleAutoDownload = useCallback(() => {
         setAutoDownload(prev => {
             const next = !prev;
             showToast(next ? "Auto-download Enabled" : "Auto-download Disabled");
-            // Optional: Call API to persist this preference
-            // api.updateParticipant(currentSession.id, { autoDownload: next });
             return next;
         });
     }, [showToast]);
@@ -907,8 +922,6 @@ export default function InstantShareProvider({ children }) {
     if (!autoDownload) return;
 
     const off = busRef.current.on("fileUploaded", (file) => {
-      // your backend already sends download URLs only on request
-      // so “auto-download” here means “auto-trigger download”
       if (!file?.id) return;
 
       setTimeout(() => {
@@ -965,6 +978,8 @@ export default function InstantShareProvider({ children }) {
         processFiles,
         downloadFile,
         downloadAllFiles,
+          queueFiles,
+          flushQueuedFiles,
         toggleAutoDownload,
         leaveRoom,
           endSessionForEveryone,
@@ -972,7 +987,7 @@ export default function InstantShareProvider({ children }) {
         bus: busRef.current,
         showToast,
       }),
-      [currentSession, myParticipantId, autoDownload, timeLeft, files, isConnected, isGuest, myRole, loading, formatTime, formatFileSize, createPairing, sendSessionNote, joinSessionSequence, participants, hasPeer, notes, processFiles, downloadFile, downloadAllFiles, toggleAutoDownload, leaveRoom, endSessionForEveryone, resetSession, showToast]
+      [currentSession, myParticipantId, autoDownload, timeLeft, files, isConnected, isGuest, myRole, loading, formatTime, formatFileSize, createPairing, sendSessionNote, joinSessionSequence, participants, hasPeer, notes, processFiles, downloadFile, downloadAllFiles, queueFiles, flushQueuedFiles, toggleAutoDownload, leaveRoom, endSessionForEveryone, resetSession, showToast]
   );
 
   return (

@@ -81,7 +81,7 @@ export default function CheckoutCancelPage() {
                             </button>
 
                             <button
-                                onClick={() => router.push("/send")}
+                                onClick={() => router.push("/drop")}
                                 className="w-full py-4 border border-white/10 text-gray-400 font-bold rounded-xl hover:bg-white/5 hover:text-white transition-colors flex items-center justify-center gap-2"
                             >
                                 <PackageOpen size={18} />

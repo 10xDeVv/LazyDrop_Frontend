@@ -256,7 +256,7 @@ export default function CheckoutSuccessPage() {
                             </button>
 
                             <button
-                                onClick={() => router.push("/send")}
+                                onClick={() => router.push("/drop")}
                                 className="w-full py-4 border border-white/10 text-gray-500 font-bold rounded-xl hover:bg-white/5 hover:text-white transition-colors"
                             >
                                 Start a Drop

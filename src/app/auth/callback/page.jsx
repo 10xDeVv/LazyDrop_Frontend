@@ -17,7 +17,7 @@ export default function AuthCallbackPage() {
             const redirectParam = params.get("redirect");
             const redirect = (redirectParam && redirectParam.startsWith('/'))
                 ? redirectParam
-                : "/send";
+                : "/drop";
 
             // Ensure session is loaded after callback
             await supabase.auth.getSession();

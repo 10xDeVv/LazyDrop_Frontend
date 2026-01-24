@@ -29,4 +29,16 @@ export const PLANS = {
             prioritySpeed: true,
         },
     },
+    PRO: {
+        name: 'PRO',
+        price: 4.99,
+        priceId: process.env.STRIPE_PRO_PRICE_ID, // You'll create this in Stripe Dashboard
+        features: {
+            maxFileSize: 2 * 1024 * 1024 * 1024, // 2GB
+            sessionDuration: 120 * 60, // 2 hours
+            transferHistory: true,
+            passwordProtection: true,
+            prioritySpeed: true,
+        },
+    },
 };

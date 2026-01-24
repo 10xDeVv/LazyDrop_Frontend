@@ -7,6 +7,7 @@ import { useApp } from "@/context/InstantShareContext";
 import Navbar from "@/components/Navbar";
 import { QRCodeSVG } from "qrcode.react";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import Link from "next/link";
 import {
     Clock, Upload, File as FileIcon, X, CheckCircle, Loader2,
     Send, Lock, Trash2, Copy, Download, Image as ImageIcon,
@@ -179,6 +180,7 @@ export default function SessionRoom() {
         formatFileSize,
         processFiles,
         downloadFile,
+        flushQueuedFiles,
         showToast,
         loading
     } = useApp();
@@ -230,6 +232,12 @@ export default function SessionRoom() {
         });
         return m;
     }, [participants]);
+
+    useEffect(() => {
+        if (!currentSession?.id) return;
+        flushQueuedFiles();
+    }, [currentSession?.id, flushQueuedFiles]);
+
 
     const onDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
     const onDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
@@ -296,7 +304,14 @@ export default function SessionRoom() {
     return (
         <div className={`${body.className} min-h-screen flex flex-col`} style={{ background: TOKENS.bg, color: TOKENS.text }}>
             <style>{GLOBAL_STYLES}</style>
-            <Navbar />
+            <Navbar
+                sessionActions={{
+                    onExit: handleExit,
+                    exitLabel: isOwner ? "End Session" : "Leave Session",
+                    onCopyLink: copyLink,
+                }}
+            />
+
 
             {/* --- MAIN LAYOUT --- */}
             <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 flex flex-col gap-6">
@@ -328,10 +343,13 @@ export default function SessionRoom() {
                             <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
                             Live Signal
                         </div>
+
                         <button onClick={handleExit} className={`h-12 px-6 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all ${isOwner ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40" : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 hover:text-white"}`}>
                             {isOwner ? <Trash2 size={16} /> : <LogOut size={16} />}
                             {isOwner ? "Terminate" : "Disconnect"}
                         </button>
+
+
                     </div>
                 </header>
 
@@ -414,7 +432,7 @@ export default function SessionRoom() {
                     <div className="lg:hidden fixed bottom-6 right-6 z-50">
                         <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => setIsChatOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-[#DFFF00] text-black font-bold rounded-full shadow-[0_0_30px_rgba(223,255,0,0.3)] hover:bg-[#ccee00] transition-all active:scale-95">
                             <MessageSquare size={20} fill="black" />
-                            <span className="text-sm uppercase tracking-widest">COMMS</span>
+                            <span className="text-sm uppercase tracking-widest">Notes</span>
                         </motion.button>
                     </div>
 

@@ -1,4 +1,3 @@
-// app/page.jsx
 "use client";
 
 import Link from "next/link";
@@ -296,7 +295,7 @@ function Hero() {
                             transition={{ delay: 0.18 }}
                             className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4"
                         >
-                            <Link href="/send" className="group px-8 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition"
+                            <Link href="/drop" className="group px-8 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition"
                                   style={{ background: TOKENS.lime, color: "#0B0C0F", boxShadow: "0 10px 30px rgba(223,255,0,0.18)" }}
                             >
                                 Start Dropping
@@ -567,7 +566,7 @@ function Pricing() {
             description: "For the occasional drop.",
             features: ["100 MB per file limit", "15 min Session Duration", "5 Files per Session", "Standard Speed"],
             cta: "Start Free",
-            href: "/send",
+            href: "/drop",
             popular: false,
         },
         {
@@ -656,7 +655,7 @@ function Footer() {
                             <li><Link href="#features" className="hover:text-white transition-colors">Features</Link></li>
                             <li><Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                             <li><Link href="/receive" className="hover:text-white transition-colors">Receive</Link></li>
-                            <li><Link href="/send" className="hover:text-white transition-colors">Send</Link></li>
+                            <li><Link href="/drop" className="hover:text-white transition-colors">Send</Link></li>
                         </ul>
                     </div>
                     <div>

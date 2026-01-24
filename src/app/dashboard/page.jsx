@@ -295,14 +295,13 @@ export default function Dashboard() {
                             You aren't connected to any rooms right now. Start a transfer to see it appear here.
                         </p>
                         <Link
-                            href="/send"
+                            href="/drop"
                             className="px-8 py-4 bg-[#DFFF00] text-black font-bold rounded-xl hover:bg-[#ccee00] transition shadow-lg flex items-center gap-2"
                         >
                             <Zap size={18} fill="black" /> Start New Drop
                         </Link>
                     </div>
                 )}
-
             </div>
         </div>
     );

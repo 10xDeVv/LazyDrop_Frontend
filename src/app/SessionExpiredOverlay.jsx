@@ -35,7 +35,7 @@ export default function SessionExpiredOverlay({ children }) {
   const handleHome = async () => {
     await resetSession();
     setIsVisible(false);
-    router.push("/");
+    router.push("/dashboard");
   };
 
   return (

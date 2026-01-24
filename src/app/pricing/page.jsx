@@ -35,7 +35,7 @@ export default function PricingPage() {
         } catch (err) {
             // Not logged in → send to signup/login
             if (err instanceof ApiError && err.status === 401) {
-                router.push(`/signup?redirect=pricing`);
+                router.push(`/signup?redirect=${encodeURIComponent("/pricing")}`);
                 return;
             }
 
@@ -60,7 +60,7 @@ export default function PricingPage() {
                 "No Signup Required",
             ],
             cta: "Start Free",
-            href: "/send",
+            href: "/drop",
             popular: false,
         },
         {
