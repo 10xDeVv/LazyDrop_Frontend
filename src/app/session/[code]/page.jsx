@@ -7,12 +7,11 @@ import { useApp } from "@/context/InstantShareContext";
 import Navbar from "@/components/Navbar";
 import { QRCodeSVG } from "qrcode.react";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
-import Link from "next/link";
 import {
     Clock, Upload, File as FileIcon, X, CheckCircle, Loader2,
     Send, Lock, Trash2, Copy, Download, Image as ImageIcon,
     Music, Video, FileArchive, FileText, Zap, LogOut, Shield,
-    Activity, Smartphone, Monitor, Terminal, MessageSquare, ChevronDown
+    Activity, Smartphone, Monitor, MessageSquare, ChevronDown
 } from "lucide-react";
 
 // --- TYPOGRAPHY ---

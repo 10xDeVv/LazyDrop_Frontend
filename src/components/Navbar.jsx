@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, memo } from "react";
+import {useState, useEffect, useRef, memo, useMemo} from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Menu, X, ArrowRight, Zap, LayoutDashboard,
-    User, LogOut, Link as LinkIcon, LogIn, XCircle, ChevronDown, Settings, LayoutGrid
+    User, LogOut, Link as LinkIcon, LogIn, XCircle, ChevronDown, Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { useApp } from "@/context/InstantShareContext";
@@ -19,8 +19,14 @@ function NavbarComponent() {
 
     const pathname = usePathname();
     const router = useRouter();
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
+
     const profileRef = useRef(null);
+    const isActive = (href) => {
+        if (href.startsWith("/#")) return pathname === "/";
+        return pathname === href;
+    };
+
 
     // Safe Context Usage
     // We only need leaveRoom. Using a selector pattern would be better performance-wise,
@@ -188,10 +194,10 @@ function NavbarComponent() {
                             <Link
                                 key={link.name}
                                 href={link.href}
-                                className={`text-sm font-medium transition-colors relative group ${pathname === link.href ? "text-[#DFFF00]" : "text-gray-400 hover:text-white"}`}
+                                className={`text-sm font-medium transition-colors relative group ${isActive(link.href) ? "text-[#DFFF00]" : "text-gray-400 hover:text-white"}`}
                             >
                                 {link.name}
-                                <span className={`absolute -bottom-1 left-0 h-0.5 bg-[#DFFF00] transition-all ${pathname === link.href ? "w-full" : "w-0 group-hover:w-full"}`} />
+                                <span className={`absolute -bottom-1 left-0 h-0.5 bg-[#DFFF00] transition-all ${isActive(link.href) ? "w-full" : "w-0 group-hover:w-full"}`} />
                             </Link>
                         ))}
                     </div>
