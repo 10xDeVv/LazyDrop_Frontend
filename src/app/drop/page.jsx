@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/context/InstantShareContext";
+import { useApp } from "@/context/LazyDropContext";
 import { createClient } from "@/lib/supabase";
 import { api } from "@/lib/api";
 import { PLANS } from "@/lib/stripe";
@@ -137,7 +137,7 @@ export default function DropPage() {
                             Ready to <span style={{ color: TOKENS.lime }}>Drop?</span>
                         </h1>
                         <p className="text-xl text-gray-400 max-w-md mx-auto">
-                            Create a secure, temporary room. <br /> Start a session, then invite peers.
+                            Create a secure, drop room. <br /> Start a session, then invite peers.
                         </p>
                     </motion.div>
 
@@ -166,20 +166,28 @@ export default function DropPage() {
                             </div>
 
                             <div className="text-gray-500 text-sm font-medium uppercase tracking-widest">
-                                {isDragging ? "Drop to auto-start" : "or drop files here to auto-start"}
+                                {isDragging ? "Drop to auto-start" : "Drop files here to start instantly"}
                             </div>
+
                         </div>
                     </motion.div>
 
+
+
                     {!isPaid && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="mt-8 text-sm text-gray-600">
-                            Free Tier Limit: {(PLANS.FREE.features.maxFileSize / 1024 / 1024).toFixed(0)}MB •{" "}
-                            <Link
-                                href="/pricing"
-                                className="text-gray-400 hover:text-[#DFFF00] transition-colors underline decoration-gray-700 underline-offset-4"
-                            >
-                                Increase Limit
-                            </Link>
+                            Your limit: {(maxFileSize / 1024 / 1024).toFixed(0)}MB per file
+                            {!isPaid && (
+                                <>
+                                    {" "}•{" "}
+                                    <Link
+                                        href="/pricing"
+                                        className="text-gray-400 hover:text-[#DFFF00] transition-colors underline decoration-gray-700 underline-offset-4"
+                                    >
+                                        Upgrade for bigger drops
+                                    </Link>
+                                </>
+                            )}
                         </motion.div>
                     )}
                 </div>

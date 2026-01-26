@@ -9,21 +9,33 @@ import {
     User, LogOut, Link as LinkIcon, LogIn, XCircle, ChevronDown, Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
-import { useApp } from "@/context/InstantShareContext";
+import { useApp } from "@/context/LazyDropContext";
 
 function NavbarComponent() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [user, setUser] = useState(null);
+    const [hash, setHash] = useState("");
 
     const pathname = usePathname();
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
 
     const profileRef = useRef(null);
+    useEffect(() => {
+        const update = () => setHash(window.location.hash || "");
+        update();
+        window.addEventListener("hashchange", update);
+        return () => window.removeEventListener("hashchange", update);
+    }, []);
+
     const isActive = (href) => {
-        if (href.startsWith("/#")) return pathname === "/";
+        if (href.startsWith("/#")) {
+            const targetHash = href.replace("/", "");
+            return pathname === "/" && hash === targetHash;
+        }
+
         return pathname === href;
     };
 
@@ -113,7 +125,7 @@ function NavbarComponent() {
 
     const appLinks = [
         { name: "Drop", href: "/drop" },
-        { name: "Receive", href: "/receive" },
+        { name: "Receive", href: "/join" },
         { name: "Pricing", href: "/pricing" },
     ];
 

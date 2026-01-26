@@ -114,25 +114,26 @@ export default function CheckoutSuccessPage() {
     // ---------- UI copy mapping ----------
     const title =
         status === "syncing"
-            ? "Verifying..."
+            ? "Confirming your upgrade"
             : status === "confirmed"
-                ? "Confirmed ✅"
+                ? "You're all set"
                 : status === "pending"
                     ? checkoutState === "CONFIRMED"
-                        ? "Almost done"
-                        : "Still verifying..."
-                    : "Connection Error";
+                        ? "Finalizing your plan"
+                        : "Still confirming"
+                    : "We couldn’t confirm it";
+
 
     const subtitle =
         status === "syncing"
-            ? "We're verifying your checkout and syncing your plan. Hold tight."
+            ? "We’re checking your checkout and updating your account."
             : status === "confirmed"
                 ? "Your subscription is active. Redirecting you to your account..."
                 : status === "pending"
                     ? checkoutState === "CONFIRMED"
-                        ? "Checkout is confirmed. We’re waiting for your account to finish syncing (webhook/DB update)."
-                        : "We couldn’t confirm checkout yet. If you just paid, it can take a moment. You can refresh."
-                    : "We couldn't verify the status right now. Please check your account or try refreshing.";
+                        ? "Checkout went through. Your account is finishing the update."
+                        : "If you just paid, it may take a moment. You can refresh to recheck."
+                    : "Something didn’t load properly. Refresh, or check your account in a moment.";
 
     const Icon = () => {
         if (status === "syncing") return <Loader2 className="w-10 h-10 text-[#DFFF00] animate-spin" />;
@@ -214,7 +215,7 @@ export default function CheckoutSuccessPage() {
                             {checkoutState && (
                                 <div className="flex justify-between items-center text-xs text-gray-500">
                   <span className="flex items-center gap-2">
-                    <Zap size={12} /> Checkout
+                    <Zap size={12} /> Status
                   </span>
                                     <span className={`${mono.className} ${checkoutState === "CONFIRMED" ? "text-[#DFFF00]" : "text-gray-400"}`}>
                     {checkoutState}

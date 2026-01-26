@@ -18,21 +18,18 @@ export class WebSocketService {
     connect(sessionId) {
         if (!sessionId) throw new Error("sessionId is required for WS connect");
 
-        // If already connected to same session, no-op
         if (this.client?.active && this.sessionId === sessionId) return;
 
-        // If connected to another session, reset first
         this.disconnect();
 
         this.sessionId = sessionId;
 
         this.client = new Client({
             webSocketFactory: () => {
-                // NOTE: SockJS will include cookies automatically if allowed by CORS (Access-Control-Allow-Credentials)
                 return new SockJS(`${API_URL}/ws`);
             },
 
-            reconnectDelay: 2000, // simple reconnect
+            reconnectDelay: 2000,
             heartbeatIncoming: 25000,
             heartbeatOutgoing: 25000,
             connectionTimeout: 15000,
@@ -66,7 +63,6 @@ export class WebSocketService {
 
             onWebSocketClose: (evt) => {
                 if (isDev) console.log("🔌 WS closed", evt?.code);
-                // Don’t spam toast here—reconnect will happen.
             },
 
             onWebSocketError: () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
@@ -31,6 +31,8 @@ const TOKENS = {
 export default function AccountPage() {
     const router = useRouter();
     const supabase = createClient();
+    const params = useSearchParams();
+    const fromPortal = params.get("fromPortal");
 
     const [user, setUser] = useState(null);
     const [sub, setSub] = useState(null);
@@ -59,6 +61,22 @@ export default function AccountPage() {
         init();
     }, [router]);
 
+    useEffect(() => {
+        if (!fromPortal) return;
+
+        // poll a few times for webhook sync
+        let tries = 0;
+        const interval = setInterval(async () => {
+            tries++;
+            const sub = await api.getMySubscription();
+            setSub(sub);
+
+            if (sub?.cancelAtPeriodEnd || tries >= 6) clearInterval(interval);
+        }, 1500);
+
+        return () => clearInterval(interval);
+    }, [fromPortal]);
+
     // --- HANDLERS ---
 
     const handlePortal = async () => {
@@ -76,7 +94,7 @@ export default function AccountPage() {
     };
 
     const handleCancel = async () => {
-        if (!confirm("Are you sure? You will lose access to features at the end of the billing period.")) return;
+        if (!confirm("Cancel your plan?\n\nYou’ll keep your current features until the end of this billing period.")) return;
         setActionLoading('cancel');
         try {
             // POST /subscriptions/cancel -> returns CancellationResponse
@@ -120,9 +138,9 @@ export default function AccountPage() {
 
     // Plan Configuration
     const PLAN_CONFIG = {
-        FREE: { label: "Casual Plan", price: "$0 / Forever", limit: "100 MB / File", color: TOKENS.muted, bgGradient: "#16181D" },
-        PLUS: { label: "Lazydrop Plus", price: "$9.99 / Month", limit: "1 GB / File", color: TOKENS.lime, bgGradient: "linear-gradient(145deg, rgba(223,255,0,0.05) 0%, #16181D 100%)" },
-        PRO:  { label: "Lazydrop Pro",  price: "$19.99 / Month", limit: "2 GB / File", color: TOKENS.purple, bgGradient: "linear-gradient(145deg, rgba(168,85,247,0.05) 0%, #16181D 100%)" },
+        FREE: { label: "Casual", price: "$0 forever", limit: "100 MB / File", color: TOKENS.muted, bgGradient: "#16181D" },
+        PLUS: { label: "Plus", price: "$9.99 / month", limit: "1 GB / File", color: TOKENS.lime, bgGradient: "linear-gradient(145deg, rgba(223,255,0,0.05) 0%, #16181D 100%)" },
+        PRO:  { label: "Pro",  price: "$19.99 / month", limit: "2 GB / File", color: TOKENS.purple, bgGradient: "linear-gradient(145deg, rgba(168,85,247,0.05) 0%, #16181D 100%)" },
     };
 
     const currentPlan = PLAN_CONFIG[planCode] || PLAN_CONFIG.FREE;
@@ -149,7 +167,7 @@ export default function AccountPage() {
 
                     {/* Header */}
                     <div className="mb-12">
-                        <h1 className={`${heading.className} text-4xl md:text-5xl font-bold mb-4`}>Account Settings</h1>
+                        <h1 className={`${heading.className} text-4xl md:text-5xl font-bold mb-4`}>Your Account</h1>
                         <p className="text-gray-400 text-lg">Manage your membership and billing details.</p>
                     </div>
 
@@ -208,7 +226,7 @@ export default function AccountPage() {
                                              style={{ borderColor: statusColor }}>
                                             <div className={`w-2 h-2 rounded-full ${!isCanceling ? 'animate-pulse' : ''}`} style={{ background: statusColor }} />
                                             <span className={`${mono.className} text-xs font-bold uppercase`} style={{ color: statusColor }}>
-                                                {statusLabel}
+                                                {isPaid ? statusLabel : "Free"}
                                             </span>
                                         </div>
                                     )}
@@ -217,7 +235,7 @@ export default function AccountPage() {
                                 {/* Plan Details Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10 relative z-10">
                                     <div className="space-y-1">
-                                        <p className="text-xs text-gray-500 flex items-center gap-2"><CreditCard size={12} /> Billing</p>
+                                        <p className="text-xs text-gray-500 flex items-center gap-2"><CreditCard size={12} />Price</p>
                                         <p className="text-xl font-medium text-white capitalize">{currentPlan.price}</p>
                                     </div>
                                     <div className="space-y-1">
@@ -232,7 +250,9 @@ export default function AccountPage() {
                                                 <Calendar size={12} /> {isCanceling ? "Expires On" : "Renews On"}
                                             </p>
                                             <p className="text-xl font-medium text-white">
-                                                {sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : "Unknown"}
+                                                {sub?.currentPeriodEnd
+                                                    ? new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" })
+                                                    : "—"}
                                             </p>
                                         </div>
                                     )}
@@ -268,7 +288,7 @@ export default function AccountPage() {
                                             className="w-full sm:w-auto px-8 py-4 border border-[#DFFF00] text-[#DFFF00] font-bold rounded-xl hover:bg-[#DFFF00]/10 transition flex items-center justify-center gap-2 disabled:opacity-50"
                                         >
                                             {actionLoading === 'reactivate' ? <Loader2 className="animate-spin" /> : <RotateCcw size={18} />}
-                                            Reactivate Now
+                                            {`Keep ${currentPlan.label}`}
                                         </button>
                                     )}
                                 </div>

@@ -106,7 +106,7 @@ export default function LoginPage() {
                         </div>
                         <h1 className={`${heading.className} text-3xl font-bold mb-2`}>Welcome back</h1>
                         <p className="text-gray-400">
-                            Log in to access your transfer history
+                            Log in to sync sessions across devices.
                         </p>
                     </div>
 

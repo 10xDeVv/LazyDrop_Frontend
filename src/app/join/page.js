@@ -1,9 +1,9 @@
-// app/receive/page.jsx
+// app/join/page.jsx
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useApp } from "@/context/InstantShareContext";
+import { useApp } from "@/context/LazyDropContext";
 import QRScanner from "@/components/QRScanner";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -156,9 +156,9 @@ export default function ReceivePage() {
                         {/* STATE 1: INPUT */}
                         {!isConnected && !isConnecting && (
                             <motion.div key="input" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="text-center">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-gray-400 mb-8"><Download size={14} /> Receive Mode</div>
-                                <h1 className={`${heading.className} text-4xl sm:text-6xl font-bold mb-4`}>Enter Key</h1>
-                                <p className="text-gray-400 mb-10 text-lg">ABCD-EFGH from sender</p>
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-gray-400 mb-8"><Download size={14} /> Connect Mode</div>
+                                <h1 className={`${heading.className} text-4xl sm:text-6xl font-bold mb-4`}>Join a Session</h1>
+                                <p className="text-gray-400 mb-10 text-lg">Paste the key or scan the QR.</p>
 
                                 <form onSubmit={handleJoin} className="relative max-w-sm mx-auto group">
                                     <div className="absolute -inset-1 bg-gradient-to-r from-[#DFFF00]/20 to-[#DFFF00]/0 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500 pointer-events-none" />

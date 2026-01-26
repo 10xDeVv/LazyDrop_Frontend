@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useApp } from "@/context/InstantShareContext";
+import { useApp } from "@/context/LazyDropContext";
 import Navbar from "@/components/Navbar";
 import { QRCodeSVG } from "qrcode.react";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
@@ -81,9 +81,9 @@ const ChatContent = ({
                         <div className="w-16 h-16 rounded-full bg-[#16181D] border border-white/10 flex items-center justify-center mb-6 shadow-2xl ring-1 ring-white/5">
                             <Lock size={28} className="text-gray-400" />
                         </div>
-                        <h4 className={`${heading.className} text-xl font-bold text-white mb-2`}>Encrypted Channel</h4>
+                        <h4 className={`${heading.className} text-xl font-bold text-white mb-2`}>Members Only</h4>
                         <p className="text-sm text-gray-400 mb-6 max-w-[220px]">
-                            Notes are restricted to members. Authenticate to decrypt.
+                            Notes are available to signed-in members. Sign in to view and send messages.
                         </p>
                         <button
                             onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/session/${code}`)}`)}
@@ -98,7 +98,7 @@ const ChatContent = ({
                 {notes.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-30 select-none">
                         <p className={`${mono.className} text-xs text-[#DFFF00] mb-2`}>{'>'} system.init_log()</p>
-                        <p className="text-sm text-gray-500">Channel secure. Waiting for input...</p>
+                        <p className="text-sm text-gray-500">No notes yet. Say something..</p>
                     </div>
                 ) : (
                     notes.map((note) => {
@@ -140,7 +140,7 @@ const ChatContent = ({
                     <input
                         value={noteInput}
                         onChange={e => setNoteInput(e.target.value)}
-                        placeholder={isGuest ? "System Locked" : "Type a note..."}
+                        placeholder={isGuest ? "Sign in to use notes" : "Type a note..."}
                         disabled={isGuest}
                         className="flex-1 bg-[#0E0F12] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#DFFF00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -204,20 +204,25 @@ export default function SessionRoom() {
 
                 if (typeof window !== 'undefined' && !window.location.pathname.includes(code)) return;
 
-                showToast("Redirecting to receive page...", "info");
-                router.push("/receive");
+                showToast("Redirecting to join page...", "info");
+                router.push("/join");
             }
         });
     }, [code, currentSession, joinSessionSequence, router, loading]);
 
     // --- AUTO SCROLL NOTES ---
     useEffect(() => {
-        if (window.innerWidth >= 1024 || isChatOpen) {
-            setTimeout(() => {
-                notesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, 100);
+        const container = notesEndRef.current?.parentElement;
+        if (!container) return;
+
+        const isNearBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+
+        if (isNearBottom) {
+            notesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [notes, isChatOpen]);
+    }, [notes]);
+
 
     // --- NAME MAPPING ---
     const participantNameMap = useMemo(() => {
@@ -256,7 +261,8 @@ export default function SessionRoom() {
 
     const handleExit = async () => {
         if (isOwner) {
-            if (confirm("⚠️ END SESSION?\n\nThis will delete all files for everyone immediately.")) {
+            if (confirm("End session for everyone?\n\nLinks will stop working and files will be removed from this session."))
+            {
                 await endSessionForEveryone();
             }
         } else {
@@ -318,7 +324,7 @@ export default function SessionRoom() {
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-6 w-full md:w-auto p-4 rounded-2xl border bg-[#16181D]" style={{ borderColor: TOKENS.border }}>
                         <div className="flex flex-col">
-                            <span className={`${mono.className} text-[10px] text-gray-500 uppercase tracking-widest mb-1`}>Secure Channel</span>
+                            <span className={`${mono.className} text-[10px] text-gray-500 uppercase tracking-widest mb-1`}>Private Session</span>
                             <div className="flex items-center gap-3">
                                 <h1 className={`${heading.className} text-3xl font-bold tracking-tight text-white`}>
                                     <span className="tabular-nums tracking-wider">{currentSession.codeDisplay}</span>
@@ -330,7 +336,7 @@ export default function SessionRoom() {
                         </div>
                         <div className="h-10 w-px bg-white/10 mx-2 hidden sm:block" />
                         <div className="flex flex-col hidden sm:flex">
-                            <span className={`${mono.className} text-[10px] text-gray-500 uppercase tracking-widest mb-1`}>Auto-Destruct In</span>
+                            <span className={`${mono.className} text-[10px] text-gray-500 uppercase tracking-widest mb-1`}>Session Ends In</span>
                             <div className="flex items-center gap-2 text-sm font-medium font-mono text-[#DFFF00]">
                                 <Clock size={14} />
                                 <span className="tabular-nums">{formatTime(timeLeft)}</span>
@@ -340,19 +346,19 @@ export default function SessionRoom() {
                     <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                         <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border bg-[#DFFF00]/5 border-[#DFFF00]/10 text-[10px] font-bold tracking-widest text-[#DFFF00] uppercase">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#DFFF00] animate-pulse" />
-                            Live Signal
+                            Live Session
                         </div>
 
                         <button onClick={handleExit} className={`h-12 px-6 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all ${isOwner ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40" : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 hover:text-white"}`}>
                             {isOwner ? <Trash2 size={16} /> : <LogOut size={16} />}
-                            {isOwner ? "Terminate" : "Disconnect"}
+                            {isOwner ? "End Session" : "Leave Session"}
                         </button>
 
 
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:h-[calc(100vh-220px)]">
 
                     {/* LEFT COLUMN: FILES */}
                     <div className="lg:col-span-8 flex flex-col gap-6">
@@ -368,7 +374,7 @@ export default function SessionRoom() {
                                 <Upload size={28} className={`transition-colors duration-300 ${isDragging ? "text-black" : "text-[#DFFF00]"}`} />
                             </div>
                             <div className="z-10">
-                                <h3 className={`${heading.className} text-xl font-bold text-white group-hover:text-[#DFFF00] transition-colors`}>{isDragging ? "Release Payload" : "Upload Files"}</h3>
+                                <h3 className={`${heading.className} text-xl font-bold text-white group-hover:text-[#DFFF00] transition-colors`}>{isDragging ? "Drop to Upload" : "Upload Files"}</h3>
                                 <p className={`${mono.className} text-xs text-gray-500 uppercase tracking-widest mt-1`}>Drag & drop or click to browse</p>
                             </div>
                         </motion.div>
@@ -379,17 +385,17 @@ export default function SessionRoom() {
                             <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-[#16181D] sticky top-0 z-20">
                                 <div className="flex items-center gap-2">
                                     <Activity size={16} className="text-[#DFFF00]" />
-                                    <span className={`${mono.className} text-[10px] font-bold uppercase tracking-widest text-gray-400`}>Data Stream</span>
+                                    <span className={`${mono.className} text-[10px] font-bold uppercase tracking-widest text-gray-400`}>Transfers</span>
                                 </div>
-                                <div className="px-2 py-1 rounded bg-white/5 border border-white/5 text-[10px] font-mono text-[#DFFF00]">{files.length} OBJ</div>
+                                <div className="px-2 py-1 rounded bg-white/5 border border-white/5 text-[10px] font-mono text-[#DFFF00]">{files.length} Files</div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                                 {files.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center text-center p-6">
                                         <div className="bg-white p-3 rounded-2xl shadow-2xl mb-6"><QRCodeSVG value={joinLink} size={140} /></div>
-                                        <h3 className={`${heading.className} text-xl font-bold text-white mb-2`}>Waiting for Peer</h3>
-                                        <p className="text-gray-500 text-sm max-w-xs leading-relaxed">Scan to join session.</p>
+                                        <h3 className={`${heading.className} text-xl font-bold text-white mb-2`}>Ready to Receive</h3>
+                                        <p className="text-gray-500 text-sm max-w-xs leading-relaxed">Scan to join this session.</p>
                                         <div className="flex gap-4 mt-8">
                                             <div className="flex items-center gap-2 text-xs text-gray-600 font-mono"><Smartphone size={14} /><span>MOBILE</span></div>
                                             <div className="w-px h-4 bg-white/10" />
@@ -422,7 +428,7 @@ export default function SessionRoom() {
                     {/* RIGHT COLUMN: COMMS LOG */}
                     {/* FIX: Removed explicit height calculation. h-full forces it to stretch to the height of the Left Column (which is defined by Dropzone + FileList). */}
                     <div className="hidden lg:flex lg:col-span-4 flex-col h-full min-h-0">
-                        <div className="flex-1 bg-[#16181D] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl h-full">
+                        <div className="flex-1 min-h-0 bg-[#16181D] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl">
                             <ChatContent notes={notes} myParticipantId={myParticipantId} participantNameMap={participantNameMap} noteInput={noteInput} setNoteInput={setNoteInput} handleSendNote={handleSendNote} isGuest={isGuest} router={router} code={code} notesEndRef={notesEndRef} />
                         </div>
                     </div>

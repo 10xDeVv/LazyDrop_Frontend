@@ -62,12 +62,12 @@ export default function CheckoutCancelPage() {
 
                         {/* Heading */}
                         <h1 className={`${heading.className} text-4xl sm:text-5xl font-bold mb-4 tracking-tight`}>
-                            Checkout Canceled
+                            Checkout not completed
                         </h1>
 
                         {/* Subtext */}
                         <p className="text-gray-400 text-lg mb-10 leading-relaxed">
-                            No worries — you weren’t charged. Your plan remains on <span className="text-white font-medium">Free</span> for now.
+                            All good — you weren’t charged. You can keep using LazyDrop on <span className="text-white font-medium">Free</span>, or upgrade anytime.
                         </p>
 
                         {/* Actions */}
@@ -91,7 +91,7 @@ export default function CheckoutCancelPage() {
 
                         {/* Footer Note */}
                         <p className="text-[10px] text-gray-600 mt-8 font-mono uppercase tracking-widest">
-                            No funds were deducted
+                            No charge was made
                         </p>
 
                     </div>

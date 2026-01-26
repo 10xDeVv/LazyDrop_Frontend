@@ -3,11 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/context/InstantShareContext";
+import { useApp } from "@/context/LazyDropContext";
 import { ShieldAlert, Home, Zap } from "lucide-react";
 import { Space_Grotesk, Inter } from "next/font/google";
 
-// --- TYPOGRAPHY ---
 const heading = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], display: "swap" });
 const body = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" });
 
@@ -17,7 +16,6 @@ export default function SessionExpiredOverlay({ children }) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Trigger on timer zero
     if (currentSession && timeLeft === 0) {
       setIsVisible(true);
     }

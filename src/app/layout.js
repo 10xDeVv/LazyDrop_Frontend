@@ -1,8 +1,8 @@
 // app/layout.js
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import InstantShareProvider from "../context/InstantShareContext";
-import SessionExpiredOverlay from "./SessionExpiredOverlay";
+import InstantShareProvider from "../context/LazyDropContext";
+import SessionExpiredOverlay from "../components/SessionExpiredOverlay";
 import { UserProvider } from "@/context/UserContext";
 
 const geistSans = Geist({

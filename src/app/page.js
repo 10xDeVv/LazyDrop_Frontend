@@ -16,6 +16,8 @@ import {
     Zap,
     Clock,
     Users,
+    Github,
+    Linkedin,
     Check,
     Lock,
     Wifi,
@@ -138,7 +140,7 @@ function SessionVisual() {
                     </div>
                     <div className="flex items-center gap-2 text-xs font-mono" style={{ color: TOKENS.dim }}>
                         <Lock className="w-3 h-3" />
-                        <span>E2E ENCRYPTED</span>
+                        <span>SECURE SESSION</span>
                     </div>
                 </div>
 
@@ -285,8 +287,8 @@ function Hero() {
                             className={`mt-6 text-base sm:text-lg lg:text-xl ${body.className}`}
                             style={{ color: TOKENS.muted, maxWidth: 560 }}
                         >
-                            Pair devices with a code or QR. Drop the file. Done.
-                            Clean UX, encrypted transfers, and zero “why is this so hard?” energy.
+                            Pair devices with a QR or code. Drop the file. Download right away.
+                            No drive. No folders. Just a clean, temporary transfer session.
                         </motion.p>
 
                         <motion.div
@@ -298,7 +300,7 @@ function Hero() {
                             <Link href="/drop" className="group px-8 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition"
                                   style={{ background: TOKENS.lime, color: "#0B0C0F", boxShadow: "0 10px 30px rgba(223,255,0,0.18)" }}
                             >
-                                Start Dropping
+                                Try it free
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
                             </Link>
 
@@ -420,7 +422,8 @@ function BentoHowItWorks() {
                             </div>
                             <h3 className={`${heading.className} text-3xl sm:text-4xl`} style={{ color: TOKENS.text }}>Scan &<br />Connect</h3>
                             <p className={`${body.className} mt-4 text-lg`} style={{ color: TOKENS.muted }}>
-                                No accounts. QR or a short code creates a secure P2P tunnel instantly.
+                                No account needed. Scan a QR or enter a code to connect.
+                                Start in seconds.
                             </p>
                         </div>
 
@@ -448,7 +451,7 @@ function BentoHowItWorks() {
                             </div>
                             <h3 className={`${heading.className} text-3xl sm:text-4xl`} style={{ color: TOKENS.text }}>Instant Transfer</h3>
                             <p className={`${body.className} mt-4 text-lg`} style={{ color: TOKENS.muted, maxWidth: 520 }}>
-                                Direct peer-to-peer. No “upload first” nonsense. Your Wi-Fi is the only limit.
+                                Upload straight from your browser. No “send it to myself” nonsense. Your connection is the only limit.
                             </p>
                         </div>
 
@@ -479,7 +482,7 @@ function BentoHowItWorks() {
                         <Shield className="w-14 h-14 mb-6" style={{ color: TOKENS.lime }} />
                         <h3 className={`${heading.className} text-3xl`} style={{ color: TOKENS.text }}>Encrypted</h3>
                         <p className={`${body.className} mt-3 text-base text-gray-400`} style={{ color: TOKENS.muted }}>
-                            Your data never lives on our servers. It’s just between you and your other device.
+                            Your data never lives permanently on our servers. It’s just between you and your other device.
                         </p>
                     </motion.div>
 
@@ -517,7 +520,7 @@ function Features() {
         { icon: <Zap className="w-6 h-6" />, title: "Instant transfer", description: "Pair + send in seconds. Feels like magic (it’s engineering)." },
         { icon: <Shield className="w-6 h-6" />, title: "Secure by default", description: "Encrypted transfers. Sessions expire. No permanent storage." },
         { icon: <Clock className="w-6 h-6" />, title: "No waiting", description: "No unnecessary steps. No clutter. Just the file moving." },
-        { icon: <Users className="w-6 h-6" />, title: "Any device", description: "Phone ↔ laptop ↔ tablet. If it has a browser, it’s in." },
+        { icon: <Users className="w-6 h-6" />, title: "Any device", description: "Phone ↔ laptop ↔ tablet. If it has a browser, it works." },
     ];
 
     return (
@@ -564,7 +567,7 @@ function Pricing() {
             name: "Casual",
             price: "0",
             description: "For the occasional drop.",
-            features: ["100 MB per file limit", "15 min Session Duration", "5 Files per Session", "Standard Speed"],
+            features: ["Up to 100MB per file", "15 min Session Duration", "5 Files per Session", "Standard Speed"],
             cta: "Start Free",
             href: "/drop",
             popular: false,
@@ -573,7 +576,7 @@ function Pricing() {
             name: "Plus",
             price: "9.99",
             description: "More power, more time.",
-            features: ["1 GB per file limit", "60 min Session Duration", "50 Files per Session", "Priority Speed"],
+            features: ["Up to 1GB per file", "60 min Session Duration", "50 Files per Session", "Priority Speed"],
             cta: "Get Plus",
             href: "/pricing",
             popular: true, // ✅ NOW POPULAR
@@ -582,7 +585,7 @@ function Pricing() {
             name: "Pro",
             price: "19.99",
             description: "For heavy duty transfer.",
-            features: ["2 GB per file limit", "120 min Session Duration", "75 Files per Session", "Turbo Speed"],
+            features: ["2 GB per file limit", "120 min Session Duration", "75 Files per Session", "Max Speed"],
             cta: "Go Pro",
             href: "/pricing",
             popular: false, // ✅ STANDARD
@@ -597,7 +600,7 @@ function Pricing() {
                         SIMPLE PRICING.
                     </h2>
                     <p className={`${body.className} text-xl`} style={{ color: TOKENS.muted }}>
-                        Most of you won't pay a dime. We're cool with that.
+                        Start free. Upgrade when your workflow needs more.
                     </p>
                 </div>
 
@@ -614,7 +617,7 @@ function Pricing() {
 function FAQ() {
     const faqs = [
         { q: "Do I need an account?", a: "No. Free drops work instantly. Create an account only if you want history, larger files, and Plus features." },
-        { q: "Is it secure?", a: "Transfers are encrypted and sessions expire automatically. Effortless *and* safe." },
+        { q: "Is it secure?", a: "Transfers use encrypted, signed links and sessions expire automatically. Simple, fast, and secure by design." },
         { q: "What’s the file size limit?", a: "Free: up to 100MB per file. Plus: up to 2GB per file." },
         { q: "Can I cancel Plus?", a: "Anytime. No contracts." },
     ];
@@ -646,52 +649,109 @@ function FAQ() {
 
 function Footer() {
     return (
-        <footer className="border-t" style={{ borderColor: TOKENS.line }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20 py-16">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
-                    <div>
-                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Product</h4>
-                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
-                            <li><Link href="#features" className="hover:text-white transition-colors">Features</Link></li>
-                            <li><Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                            <li><Link href="/receive" className="hover:text-white transition-colors">Receive</Link></li>
-                            <li><Link href="/drop" className="hover:text-white transition-colors">Send</Link></li>
-                        </ul>
+        <footer className="border-t relative overflow-hidden" style={{ borderColor: TOKENS.line }}>
+            {/* Background Glow for Footer */}
+            <div className="absolute bottom-0 left-0 w-[500px] h-[300px] bg-[#DFFF00]/5 rounded-full blur-[120px] pointer-events-none" />
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20 py-20">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-24 mb-16">
+
+                    {/* LEFT COLUMN: Brand + Founder Signature */}
+                    <div className="flex flex-col items-start justify-between">
+                        <div>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 bg-[#DFFF00] rounded-xl flex items-center justify-center text-black font-bold">
+                                    <Zap size={20} fill="black" />
+                                </div>
+                                <span className={`${heading.className} font-bold text-2xl text-white`}>LazyDrop</span>
+                            </div>
+                            <p className={`${body.className} text-gray-400 text-sm leading-relaxed max-w-sm mb-10`}>
+                                The simplest way to move files between devices. No drive, no clutter—just fast, secure transfer sessions.
+                            </p>
+                        </div>
+
+                        {/* --- FOUNDER SIGNATURE CARD --- */}
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-[#DFFF00] blur-xl opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
+                            <div className="relative flex flex-col gap-3 p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#DFFF00]/30 transition-all duration-300">
+                                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Built & Designed by</p>
+
+                                <div className="flex items-center gap-4">
+                                    {/* Avatar / Placeholder */}
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-white/10 flex items-center justify-center text-xs font-bold text-white shadow-inner">
+                                        W
+                                    </div>
+
+                                    <div>
+                                        <p className="text-white font-bold text-sm">Adebowale Adebayo</p>
+                                        <p className="text-xs text-[#DFFF00]">Founder & Engineer</p>
+                                    </div>
+
+                                    <div className="h-8 w-px bg-white/10 mx-2" />
+
+                                    <div className="flex gap-2">
+                                        <a
+                                            href="https://github.com/10xDeVv"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 rounded-lg bg-black/20 text-gray-400 hover:text-white hover:bg-black/40 transition-colors"
+                                            title="GitHub"
+                                        >
+                                            <Github size={16} />
+                                        </a>
+                                        <a
+                                            href="https://www.linkedin.com/in/waally-7707xyz"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 rounded-lg bg-black/20 text-gray-400 hover:text-[#0077b5] hover:bg-black/40 transition-colors"
+                                            title="LinkedIn"
+                                        >
+                                            <Linkedin size={16} />
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Company</h4>
-                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
-                            <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
-                            <li><Link href="/blog" className="hover:text-white transition-colors">Blog</Link></li>
-                            <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Legal</h4>
-                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
-                            <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link></li>
-                            <li><Link href="/terms" className="hover:text-white transition-colors">Terms</Link></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className={`${heading.className} font-bold mb-6 text-lg`} style={{ color: TOKENS.text }}>Social</h4>
-                        <ul className="space-y-4 text-sm font-medium" style={{ color: TOKENS.muted }}>
-                            <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Twitter</a></li>
-                            <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a></li>
+
+                    <div className="md:pl-12 pt-4">
+                        <h4 className={`${heading.className} font-bold text-white text-lg mb-6`}>Product</h4>
+                        <ul className="space-y-4">
+                            <li>
+                                <Link href="/drop" className="group flex items-center gap-3 text-gray-400 hover:text-[#DFFF00] transition-colors">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-[#DFFF00] transition-colors" />
+                                    Send a File
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/join" className="group flex items-center gap-3 text-gray-400 hover:text-[#DFFF00] transition-colors">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-[#DFFF00] transition-colors" />
+                                    Receive a File
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/pricing" className="group flex items-center gap-3 text-gray-400 hover:text-[#DFFF00] transition-colors">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-[#DFFF00] transition-colors" />
+                                    Pricing & Plans
+                                </Link>
+                            </li>
+                            <li>
+                                <a href="mailto:hello@lazydrop.com" className="group flex items-center gap-3 text-gray-400 hover:text-[#DFFF00] transition-colors">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-[#DFFF00] transition-colors" />
+                                    Support
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
-                <div className="pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-6" style={{ borderColor: TOKENS.line }}>
-                    <div className="flex items-center gap-3">
-                        <Image src="/icon.png" alt="LazyDrop" width={40} height={40} className="w-10 h-10" priority />
-                        <div>
-                            <div className={`${heading.className} font-bold text-lg`} style={{ color: TOKENS.text }}>LazyDrop</div>
-                            <div className="text-xs tracking-wide" style={{ color: TOKENS.dim }}>share. no strings.</div>
-                        </div>
-                    </div>
-                    <div className="text-sm text-center sm:text-right" style={{ color: TOKENS.dim }}>
-                        © 2026 LazyDrop. Designed for lazy people.
-                    </div>
+
+                {/* Bottom Bar */}
+                <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+                    <p>© 2026 LazyDrop. All rights reserved.</p>
+                    <p className="flex items-center gap-1">
+                        Crafted in Canada 🇨🇦
+                    </p>
                 </div>
             </div>
         </footer>
