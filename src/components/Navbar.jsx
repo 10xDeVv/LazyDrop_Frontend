@@ -104,9 +104,9 @@ function NavbarComponent() {
     };
 
     const handleExitSession = async () => {
-        if (isSession && leaveRoom) {
-            await leaveRoom();
-        }
+        // if (isSession && leaveRoom) {
+        //     await leaveRoom();
+        // }
         router.push("/dashboard");
     };
 
