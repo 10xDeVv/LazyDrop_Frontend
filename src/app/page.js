@@ -404,24 +404,39 @@ function UseCases() {
 
                 <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
 
-                    {/* LEFT: THE FREE THROW ILLUSTRATION */}
+                    {/* LEFT: THE ILLUSTRATION (Now Blended) */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.7 }}
+                        animate={{ y: [0, -15, 0] }} // Floating animation
+                        transition={{
+                            opacity: { duration: 0.7 },
+                            scale: { duration: 0.7 },
+                            y: { duration: 6, repeat: Infinity, ease: "easeInOut" } // Slow float
+                        }}
                         className="w-full lg:w-1/2 relative flex justify-center order-2 lg:order-1"
                     >
-                        {/* Glow behind image */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#DFFF00] blur-[150px] opacity-10 rounded-full pointer-events-none" />
+                        {/* 1. The Back Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-[#DFFF00] blur-[120px] opacity-20 rounded-full pointer-events-none" />
 
-                        {/* The Image */}
-                        <div className="relative w-full max-w-[500px] aspect-square">
+                        <div className="relative w-full max-w-[550px] aspect-square">
+                            {/* 2. The Image */}
                             <Image
-                                src="/hero-illustration.png" // Ensure this file exists in /public
+                                src="/hero-illustration.png"
                                 alt="LazyDrop Effortless Transfer"
                                 fill
                                 className="object-contain"
+                                style={{ mixBlendMode: 'lighten' }} // Optional: Helps neon pop against dark bg
+                            />
+
+                            {/* 3. THE BLENDER: A Vignette Mask to hide hard edges */}
+                            {/* This gradient goes from Transparent (center) to Your BG Color (edges) */}
+                            <div
+                                className="absolute inset-0 pointer-events-none"
+                                style={{
+                                    background: `radial-gradient(circle at center, transparent 40%, ${TOKENS.bg} 80%)`
+                                }}
                             />
                         </div>
                     </motion.div>
