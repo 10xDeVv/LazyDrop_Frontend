@@ -530,7 +530,7 @@ export default function InstantShareProvider({ children }) {
 
         const unsubFileUploaded = wsRef.current.subscribe("FILE_UPLOADED", (payload) => {
             const serverId = payload.fileId;
-            const isMine = payload.uploaderId === myParticipantIdRef.current;
+            const isMine = payload.uploaderParticipantId === myParticipantIdRef.current;
 
             setFiles(prev => {
                 if (prev.some(f => f.serverFileId === serverId || f.id === serverId)) return prev;
@@ -623,7 +623,7 @@ export default function InstantShareProvider({ children }) {
         });
         unsubscribersRef.current.push(unsubFilesCleaned);
       },
-      [hardReset, showToast]
+      [hardReset, showToast, upsertParticipant, removeParticipant]
   );
 
     const joinSessionSequence = useCallback(async (codeOrId) => {

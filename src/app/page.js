@@ -384,44 +384,81 @@ function UseCases() {
         {
             icon: <School className="w-6 h-6 text-[#DFFF00]" />,
             title: "The Campus Hustle",
-            desc: "Working on a school library computer? Need a pic from your phone to your slide deck? Don't email yourself. Just Drop it."
+            desc: "Working on a library computer? Need a pic from your phone to your slide deck? Don't email yourself. Just Drop it."
         },
         {
             icon: <Share2 className="w-6 h-6 text-[#DFFF00]" />,
             title: "The Group Project",
-            desc: "iPhone, Android, Windows laptop... doesn't matter. Everyone joins the same room. Anyone can send. Anyone can receive."
+            desc: "iPhone, Android, Windows... doesn't matter. Everyone joins the room. Everyone shares. N:N transfer flow."
         },
         {
             icon: <MessageSquare className="w-6 h-6 text-[#DFFF00]" />,
             title: "Built-in Coordination",
-            desc: "Stop switching apps to say 'Send the textbook'. Use session notes to coordinate file swaps right where the files are."
+            desc: "Stop switching apps to say 'Send the textbook'. Use session notes to coordinate file swaps instantly."
         }
     ];
 
     return (
-        <section id="use-cases" className="py-20 relative border-t border-b" style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.02)" }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20">
-                <SectionHeader
-                    title="Built for moments like this"
-                    subtitle=" When AirDrop isn’t available and Drive feels like overhead, LazyDrop is instant."
-                />
-                <div className="grid md:grid-cols-3 gap-8">
-                    {cases.map((c, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            className="flex flex-col gap-4"
-                        >
-                            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-2">
-                                {c.icon}
-                            </div>
-                            <h3 className={`${heading.className} text-xl font-bold text-white`}>{c.title}</h3>
-                            <p className={`${body.className} text-gray-400 text-sm leading-relaxed`}>{c.desc}</p>
-                        </motion.div>
-                    ))}
+        <section id="use-cases" className="py-24 relative border-t border-b" style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.02)" }}>
+            <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+
+                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+
+                    {/* LEFT: THE FREE THROW ILLUSTRATION */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.7 }}
+                        className="w-full lg:w-1/2 relative flex justify-center order-2 lg:order-1"
+                    >
+                        {/* Glow behind image */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#DFFF00] blur-[150px] opacity-10 rounded-full pointer-events-none" />
+
+                        {/* The Image */}
+                        <div className="relative w-full max-w-[500px] aspect-square">
+                            <Image
+                                src="/hero-illustration.png" // Ensure this file exists in /public
+                                alt="LazyDrop Effortless Transfer"
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
+                    </motion.div>
+
+                    {/* RIGHT: CONTENT */}
+                    <div className="w-full lg:w-1/2 order-1 lg:order-2">
+                        <div className="mb-10">
+                            <h2 className={`${heading.className} text-4xl lg:text-5xl font-bold mb-4 text-white`}>
+                                Built for moments <br/> like this.
+                            </h2>
+                            <p className={`${body.className} text-lg text-gray-400 max-w-md`}>
+                                When AirDrop isn’t available and Drive feels like overhead, LazyDrop is the answer.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-6">
+                            {cases.map((c, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.15 }}
+                                    className="flex gap-5 p-5 rounded-2xl border border-white/5 bg-[#16181D]/50 hover:bg-[#16181D] hover:border-[#DFFF00]/20 transition-all duration-300 group"
+                                >
+                                    <div className="shrink-0 w-12 h-12 rounded-xl bg-[#DFFF00]/10 border border-[#DFFF00]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        {c.icon}
+                                    </div>
+                                    <div>
+                                        <h3 className={`${heading.className} text-lg font-bold text-white group-hover:text-[#DFFF00] transition-colors`}>{c.title}</h3>
+                                        <p className={`${body.className} text-gray-400 text-sm leading-relaxed mt-1`}>{c.desc}</p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </section>

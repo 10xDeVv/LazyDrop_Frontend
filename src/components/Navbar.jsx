@@ -126,6 +126,21 @@ function NavbarComponent() {
 
     const middleLinks = isSession ? [] : (isLanding ? landingLinks : appLinks);
 
+    const returnTo =
+        typeof window !== "undefined"
+            ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+            : "/dashboard";
+
+    const signupHref = `/signup?redirect=${encodeURIComponent(returnTo)}`;
+    const loginHref  = `/login?redirect=${encodeURIComponent(returnTo)}`;
+
+    const currentPathWithQueryAndHash = () => {
+        if (typeof window === "undefined") return "/dashboard";
+        return window.location.pathname + window.location.search + window.location.hash;
+    };
+
+
+
     const renderUnifiedDropdown = () => (
         <div className="relative z-50" ref={profileRef}>
             <button
@@ -195,10 +210,10 @@ function NavbarComponent() {
                             </>
                         ) : (
                             <>
-                                <Link href="/login" className="flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors">
+                                <Link href={`/login?redirect=${encodeURIComponent(currentPathWithQueryAndHash())}`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors">
                                     <LogIn size={16} /> Log In
                                 </Link>
-                                <Link href="/signup" className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#DFFF00] hover:bg-[#DFFF00]/10 transition-colors font-bold">
+                                <Link href={`/signup?redirect=${encodeURIComponent(currentPathWithQueryAndHash())}`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#DFFF00] hover:bg-[#DFFF00]/10 transition-colors font-bold">
                                     <ArrowRight size={16} /> Create Account
                                 </Link>
                             </>
@@ -275,10 +290,10 @@ function NavbarComponent() {
                                     </button>
                                 ) : (
                                     <>
-                                        <Link href="/login" className="text-sm font-bold text-white hover:text-[#DFFF00] transition-colors">
+                                        <Link href={`/login?redirect=${encodeURIComponent(currentPathWithQueryAndHash())}`} className="text-sm font-bold text-white hover:text-[#DFFF00] transition-colors">
                                             Log In
                                         </Link>
-                                        <Link href="/signup" className="px-6 py-2.5 bg-white text-black rounded-full font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2">
+                                        <Link href={`/signup?redirect=${encodeURIComponent(currentPathWithQueryAndHash())}`} className="px-6 py-2.5 bg-white text-black rounded-full font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2">
                                             Get Started
                                         </Link>
                                     </>
@@ -359,8 +374,8 @@ function NavbarComponent() {
                                         </>
                                     ) : (
                                         <>
-                                            <Link href="/login" className="text-xl font-bold text-white flex items-center gap-3"><LogIn size={20}/> Log In</Link>
-                                            <Link href="/signup" className="py-4 bg-[#DFFF00] text-black rounded-xl font-bold text-center text-lg mt-4">
+                                            <Link href={`/login?redirect=${encodeURIComponent(currentPathWithQueryAndHash())}`} className="text-xl font-bold text-white flex items-center gap-3"><LogIn size={20}/> Log In</Link>
+                                            <Link href={`/signup?redirect=${encodeURIComponent(currentPathWithQueryAndHash())}`} className="py-4 bg-[#DFFF00] text-black rounded-xl font-bold text-center text-lg mt-4">
                                                 Create Account
                                             </Link>
                                         </>

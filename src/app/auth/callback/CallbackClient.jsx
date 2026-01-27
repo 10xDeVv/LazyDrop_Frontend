@@ -14,7 +14,7 @@ export default function CallbackClient() {
         const run = async () => {
             const redirectParam = params.get("redirect");
             const redirect =
-                redirectParam && redirectParam.startsWith("/") ? redirectParam : "/drop";
+                redirectParam && redirectParam.startsWith("/") ? redirectParam : "/dashboard";
 
             await supabase.auth.getSession();
 

@@ -16,9 +16,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-    title: "LazyDrop - File Sharing for the Lazy Generation",
-    description: "Too lazy for cables? Drop files between devices instantly. No apps, no signups, just works.",
+    title: "LazyDrop — The fastest way to move files between devices",
+    description: "Instant, session-based file transfer. Scan a QR, drop files, download anywhere. No drives. No clutter. Just fast, temporary sharing.",
 };
+
 
 export default function RootLayout({ children }) {
     return (
