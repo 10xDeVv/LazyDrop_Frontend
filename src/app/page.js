@@ -292,7 +292,7 @@ function Hero() {
                             style={{ color: TOKENS.muted, maxWidth: 540 }}
                         >
                             No setup. No friction. <br className="hidden sm:block" />
-                            Scan a QR, drop the file, everyone in the room gets it instantly.
+                            Scan a QR, drop the file, and share instantly across devices.
                         </motion.p>
 
                         <motion.div
