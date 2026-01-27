@@ -245,8 +245,8 @@ export default function PricingPage() {
                             {[
                                 { q: "Can I cancel anytime?", a: "Yes! Cancel anytime from your account dashboard. No contracts, no hassle." },
                                 { q: "What happens to my files?", a: "Files are automatically deleted after the session expires. We don't store them permanently." },
-                                { q: "Do you offer refunds?", a: "We offer a 7-day money-back guarantee if you're not satisfied." },
-                                { q: "Is it secure?", a: "Yes. All transfers are encrypted end-to-end via TLS. We don't peek at your files." },
+                                { q: "Not sure which plan to pick?", a: "We offer a 7-day money-back guarantee if you're not satisfied." },
+                                { q: "Is it secure?", a: "Start with Free. Upgrade when you hit limits. You can cancel anytime from your dashboard." },
                             ].map((faq, i) => (
                                 <motion.div
                                     key={i}
