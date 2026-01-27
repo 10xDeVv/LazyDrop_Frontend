@@ -12,6 +12,8 @@ import React, {
 import { api } from "@/lib/api";
 import { WebSocketService } from "@/lib/websocket";
 import { CheckCircle, XCircle, Info } from "lucide-react";
+import {useRouter} from "next/navigation";
+import ToastContainer from "@/components/Toast";
 
 class EventBus {
   constructor() {
@@ -31,73 +33,91 @@ class EventBus {
 
 const ToastCtx = createContext(null);
 
-function Toasts({ toasts }) {
-  return (
-      <div
-          id="toastContainer"
-          aria-live="polite"
-          aria-atomic="true"
-          className="fixed top-24 right-4 sm:right-8 z-[3000] flex flex-col gap-3 pointer-events-none"
-      >
-        {toasts.map((t) => (
-            <div
-                key={t.id}
-                className={`
+function Toasts({ toasts, onAction }) {
+    return (
+        <div
+            id="toastContainer"
+            aria-live="polite"
+            aria-atomic="true"
+            className="fixed top-24 right-4 sm:right-8 z-[3000] flex flex-col gap-3 pointer-events-none"
+        >
+            {toasts.map((t) => (
+                <div
+                    key={t.id}
+                    className={`
             pointer-events-auto flex items-center gap-3 p-4 min-w-[300px] max-w-sm
             bg-[#16181D]/90 backdrop-blur-md border rounded-xl shadow-2xl
             animate-in slide-in-from-right duration-300
           `}
-                style={{
-                  borderColor:
-                      t.type === "success"
-                          ? "rgba(223, 255, 0, 0.3)"
-                          : t.type === "error"
-                              ? "rgba(239, 68, 68, 0.3)"
-                              : "rgba(255, 255, 255, 0.1)",
-                }}
-            >
-              <div
-                  className={`
+                    style={{
+                        borderColor:
+                            t.type === "success"
+                                ? "rgba(223, 255, 0, 0.3)"
+                                : t.type === "error"
+                                    ? "rgba(239, 68, 68, 0.3)"
+                                    : "rgba(255, 255, 255, 0.1)",
+                    }}
+                >
+                    <div
+                        className={`
               shrink-0 w-8 h-8 rounded-full flex items-center justify-center
               ${
-                      t.type === "success"
-                          ? "bg-[#DFFF00]/10 text-[#DFFF00]"
-                          : t.type === "error"
-                              ? "bg-red-500/10 text-red-500"
-                              : "bg-white/10 text-white"
-                  }
+                            t.type === "success"
+                                ? "bg-[#DFFF00]/10 text-[#DFFF00]"
+                                : t.type === "error"
+                                    ? "bg-red-500/10 text-red-500"
+                                    : "bg-white/10 text-white"
+                        }
             `}
-              >
-                {t.type === "success" && <CheckCircle size={16} />}
-                {t.type === "error" && <XCircle size={16} />}
-                {t.type === "info" && <Info size={16} />}
-              </div>
+                    >
+                        {t.type === "success" && <CheckCircle size={16} />}
+                        {t.type === "error" && <XCircle size={16} />}
+                        {t.type === "info" && <Info size={16} />}
+                    </div>
 
-              <div className="flex-1 min-w-0">
-                <p
-                    className={`text-sm font-bold ${
-                        t.type === "success"
-                            ? "text-[#DFFF00]"
-                            : t.type === "error"
-                                ? "text-red-400"
-                                : "text-white"
-                    }`}
-                >
-                  {t.type === "success"
-                      ? "Success"
-                      : t.type === "error"
-                          ? "Error"
-                          : "Info"}
-                </p>
-                <p className="text-sm text-gray-400 mt-0.5 truncate">{t.message}</p>
-              </div>
+                    <div className="flex-1 min-w-0">
+                        <p
+                            className={`text-sm font-bold ${
+                                t.type === "success"
+                                    ? "text-[#DFFF00]"
+                                    : t.type === "error"
+                                        ? "text-red-400"
+                                        : "text-white"
+                            }`}
+                        >
+                            {t.type === "success" ? "Success" : t.type === "error" ? "Error" : "Info"}
+                        </p>
 
-              <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent w-full opacity-50" />
-            </div>
-        ))}
-      </div>
-  );
+                        <p className="text-sm text-gray-400 mt-0.5 break-words">{t.message}</p>
+
+                        {/* ✅ Action Button */}
+                        {t.action?.label && (
+                            <div className="mt-2">
+                                <button
+                                    onClick={() => onAction?.(t)}
+                                    className={`
+                    inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold
+                    border transition
+                    ${
+                                        t.type === "error"
+                                            ? "border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+                                            : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                                    }
+                  `}
+                                >
+                                    {t.action.label}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent w-full opacity-50" />
+                </div>
+            ))}
+        </div>
+    );
 }
+
 
 const AppCtx = createContext(null);
 export function useApp() {
@@ -109,6 +129,7 @@ export default function InstantShareProvider({ children }) {
     const [myParticipantId, setMyParticipantId] = useState(null);
     const myParticipantIdRef = useRef(null);
     const pendingFilesRef = useRef([]);
+    const router = useRouter();
 
     // Keep ref in sync
     useEffect(() => {
@@ -149,16 +170,98 @@ export default function InstantShareProvider({ children }) {
     };
 
   // ---------- toast ----------
-  const [toasts, setToasts] = useState([]);
-  const showToast = useCallback((message, type = "success", duration = 3000) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, duration);
-  }, []);
+    // ---------- toast ----------
+    const [toasts, setToasts] = useState([]);
 
-  // ---------- formatters ----------
+    const removeToast = useCallback((id) => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, []);
+
+    const showToast = useCallback((messageOrObj, type = "success", duration = 3500, action) => {
+        const id = globalThis?.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+
+        const normalized =
+            typeof messageOrObj === "string"
+                ? { message: messageOrObj, type, duration, action }
+                : {
+                    message: messageOrObj?.message || "",
+                    type: messageOrObj?.type || type,
+                    duration: messageOrObj?.duration ?? duration,
+                    action: messageOrObj?.action ?? action,
+                };
+
+        const toast = {
+            id,
+            message: normalized.message,
+            type: normalized.type,
+            duration: normalized.duration,
+            action: normalized.action, // { label, href?, onClick? }
+        };
+
+        setToasts((prev) => [...prev, toast]);
+
+        window.setTimeout(() => removeToast(id), toast.duration);
+    }, [removeToast]);
+
+    const handleToastAction = useCallback(
+        (toast) => {
+            const action = toast?.action;
+            if (!action) return;
+
+            removeToast(toast.id);
+
+            if (typeof action.onClick === "function") return action.onClick();
+            if (action.href) router.push(action.href);
+        },
+        [router, removeToast]
+    );
+
+
+
+    const handleApiError = useCallback(
+        (err, fallback = "Something went wrong") => {
+            const status = err?.status;
+            const msg = err?.message || fallback;
+
+            const isLimit =
+                status === 429 ||
+                /max(imum)?|limit|quota|too many|active sessions|plan/i.test(msg);
+
+            if (isLimit) {
+                const isGuestLimit =
+                    isGuest || /guest|anonymous/i.test(msg);
+
+                showToast(msg, "error", 8000, {
+                    label: isGuestLimit ? "Sign up" : "Upgrade",
+                    href: isGuestLimit ? "/signup?redirect=/pricing" : "/pricing",
+                });
+                return;
+            }
+
+            if (status === 401) {
+                showToast("Please log in to continue.", "error", 6500, {
+                    label: "Log in",
+                    href: "/login",
+                });
+                return;
+            }
+
+            if (status === 403) {
+                showToast("This is locked for guests. Sign up to unlock it.", "info", 8000, {
+                    label: "Sign up",
+                    href: "/signup",
+                });
+                return;
+            }
+
+            showToast(msg, "error", 6500);
+        },
+        [showToast, isGuest]
+    );
+
+
+
+    // ---------- formatters ----------
   const formatTime = useCallback((seconds) => {
     const m = Math.floor(seconds / 60);
     const s = (seconds % 60).toString().padStart(2, "0");
@@ -271,10 +374,10 @@ export default function InstantShareProvider({ children }) {
             setNotes(prev => prev.map(n =>
                 n.id === clientNoteId ? { ...real, isOptimistic: false } : n
             ));
-        } catch (err) {
+        } catch (error) {
             setNotes(prev => prev.filter(n => n.id !== clientNoteId));
-            if (err?.status === 403) setIsGuest(true);
-            showToast("Failed to send note", "error");
+            if (error?.status === 403) setIsGuest(true);
+            handleApiError(error, "Failed to send session note");
         }
     }, [currentSession, myParticipantId, showToast]);
 
@@ -287,7 +390,7 @@ export default function InstantShareProvider({ children }) {
             // backend will broadcast DROP_SESSION_CLOSED; your WS handler hardReset() will run
         } catch (err) {
             console.error("endSession failed:", err);
-            showToast("Failed to end session", "error");
+            handleApiError(err, "Failed to end session");
             // still allow local cleanup if you want:
             // await endSession();
         }
@@ -605,7 +708,7 @@ export default function InstantShareProvider({ children }) {
                 setIsGuest(true);
                 return true;
             } else {
-                showToast(err?.message || "Session invalid", "error");
+                handleApiError(err, "Session invalid");
                 return false;
             }
         } finally {
@@ -675,7 +778,7 @@ export default function InstantShareProvider({ children }) {
       return session;
     } catch (error) {
       console.error("Failed to create session:", error);
-      showToast("Failed to create session. Try again.", "error");
+      handleApiError(error, "Failed to create session");
     } finally {
       setLoading(false);
     }
@@ -782,7 +885,7 @@ export default function InstantShareProvider({ children }) {
                 setFiles((prev) =>
                     prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
                 );
-                showToast(`Failed to upload ${file.name}`, "error");
+                  handleApiError({ status: xhr.status, message: `Failed to upload ${file.name}` }, `Failed to upload ${file.name}`);
               }
             });
 
@@ -790,7 +893,7 @@ export default function InstantShareProvider({ children }) {
               setFiles((prev) =>
                   prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
               );
-              showToast(`Failed to upload ${file.name}`, "error");
+                handleApiError({ status: xhr.status || 0, message: `Failed to upload ${file.name}` }, `Failed to upload ${file.name}`);
             });
 
             xhr.open("PUT", signedUrl);
@@ -839,7 +942,7 @@ export default function InstantShareProvider({ children }) {
 
         } catch (error) {
             console.error("Download failed:", error);
-            showToast("Failed to download file", "error");
+            handleApiError(error, "Failed to download file");
             setFiles(prev => prev.map(f =>
                 f.id === fileId ? { ...f, isDownloading: false } : f
             ));
@@ -991,11 +1094,13 @@ export default function InstantShareProvider({ children }) {
   );
 
   return (
-      <ToastCtx.Provider value={{ show: showToast }}>
         <AppCtx.Provider value={value}>
-          <Toasts toasts={toasts} />
+            <ToastContainer
+                toasts={toasts}
+                removeToast={removeToast}
+                onAction={handleToastAction}
+            />
           {children}
         </AppCtx.Provider>
-      </ToastCtx.Provider>
   );
 }

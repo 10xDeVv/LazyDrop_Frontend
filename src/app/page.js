@@ -10,17 +10,18 @@ import {
     ArrowDown,
     Sparkles,
     Upload,
-    Download,
     QrCode,
     Shield,
     Zap,
     Clock,
     Users,
-    Github,
+    School,
+    Share2,
     Linkedin,
+    Github,
+    MessageSquare,
     Check,
     Lock,
-    Wifi,
     File,
     Laptop,
     Smartphone,
@@ -176,7 +177,7 @@ function SessionVisual() {
 
                     {/* Drag & Drop Zone (FIXED: Hover Glow) */}
                     <div
-                        className="relative rounded-2xl border-2 border-dashed p-8 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.01] cursor-pointer group/drop"
+                        className="groupdrop relative rounded-2xl border-2 border-dashed p-8 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.01] cursor-pointer"
                         style={{ borderColor: TOKENS.line, background: "rgba(0,0,0,0.2)" }}
                     >
                         {/* CSS trick for hover border color since inline styles override tailwind classes sometimes */}
@@ -239,7 +240,7 @@ function SessionVisual() {
 function Hero() {
     return (
         <section className="relative pt-32 pb-20 overflow-hidden flex flex-col items-center min-h-[90vh] justify-center">
-            {/* Background Texture */}
+            {/* ... (Backgrounds remain unchanged) ... */}
             <div className="absolute inset-0 opacity-[0.75] pointer-events-none"
                  style={{
                      background: `
@@ -263,21 +264,24 @@ function Hero() {
                             style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.04)" }}
                         >
                             <Sparkles className="w-4 h-4" style={{ color: TOKENS.lime }} />
-                            <span className="text-xs sm:text-sm" style={{ color: TOKENS.muted }}>Too lazy for cables? Same.</span>
+                            <span className="text-xs sm:text-sm" style={{ color: TOKENS.muted }}>The frictionless way to move data.</span>
                         </motion.div>
 
+                        {/* --- FIXED HEADLINE --- */}
                         <motion.h1
                             initial={{ opacity: 0, y: 18 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.05 }}
-                            className={`text-5xl sm:text-6xl md:text-7xl lg:text-[4.6rem] xl:text-[5.5rem] leading-[0.92] tracking-tight ${heading.className}`}
+                            className={`text-5xl sm:text-6xl md:text-7xl lg:text-[4.6rem] xl:text-[5.5rem] leading-[0.95] tracking-tight ${heading.className}`}
                             style={{ color: TOKENS.text }}
                         >
-                            SHARE.
+                            FROM THIS DEVICE
                             <br />
-                            NO <span style={{ color: TOKENS.lime }}>STRINGS.</span>
+                            <span className="whitespace-nowrap"> {/* Forces "TO THAT ONE." to stay on one line if space permits */}
+                                TO <span style={{ color: TOKENS.lime }}>THAT ONE.</span>
+                            </span>
                             <br />
-                            JUST <span style={{ color: "rgba(255,255,255,0.65)" }}>FLOW.</span>
+                            IN <span style={{ color: "rgba(255,255,255,0.65)" }}>SECONDS.</span>
                         </motion.h1>
 
                         <motion.p
@@ -285,10 +289,10 @@ function Hero() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.12 }}
                             className={`mt-6 text-base sm:text-lg lg:text-xl ${body.className}`}
-                            style={{ color: TOKENS.muted, maxWidth: 560 }}
+                            style={{ color: TOKENS.muted, maxWidth: 540 }}
                         >
-                            Pair devices with a QR or code. Drop the file. Download right away.
-                            No drive. No folders. Just a clean, temporary transfer session.
+                            No setup. No friction. <br className="hidden sm:block" />
+                            Scan a QR, drop the file, everyone in the room gets it instantly.
                         </motion.p>
 
                         <motion.div
@@ -300,7 +304,7 @@ function Hero() {
                             <Link href="/drop" className="group px-8 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition"
                                   style={{ background: TOKENS.lime, color: "#0B0C0F", boxShadow: "0 10px 30px rgba(223,255,0,0.18)" }}
                             >
-                                Try it free
+                                Drop Files Now
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
                             </Link>
 
@@ -309,8 +313,6 @@ function Hero() {
                             >
                                 How it Works
                             </Link>
-
-
                         </motion.div>
 
                         <motion.div
@@ -320,7 +322,7 @@ function Hero() {
                             className="mt-3 text-xs sm:text-sm"
                             style={{ color: TOKENS.dim }}
                         >
-                            No signup required for Free.
+                            No signup required. Create an account only for history.
                         </motion.div>
 
                         <motion.div
@@ -329,9 +331,9 @@ function Hero() {
                             transition={{ delay: 0.28 }}
                             className="mt-8 flex flex-wrap items-center gap-2"
                         >
-  <span className="text-xs sm:text-sm mr-2" style={{ color: TOKENS.dim }}>
-    Works on
-  </span>
+                            <span className="text-xs sm:text-sm mr-2" style={{ color: TOKENS.dim }}>
+                                Works on
+                            </span>
 
                             {["Mac", "Windows", "iOS", "Android", "Linux"].map((p) => (
                                 <span
@@ -343,14 +345,14 @@ function Hero() {
                                         color: TOKENS.text,
                                     }}
                                 >
-      {p}
-    </span>
+                                    {p}
+                                </span>
                             ))}
                         </motion.div>
 
                     </div>
 
-                    {/* Right Visual (Hidden on mobile for better responsiveness, visible lg+) */}
+                    {/* Right Visual */}
                     <motion.div
                         initial={{ opacity: 0, x: 24 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -361,17 +363,66 @@ function Hero() {
                     </motion.div>
                 </div>
 
-                {/* The Spinner - Centered at Bottom of Hero */}
+                {/* The Spinner */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.8 }}
                     className="flex justify-center mt-20 sm:mt-24 lg:mt-32"
                 >
-                    <Link href="#how-it-works">
+                    <Link href="#use-cases">
                         <ScrollDownSpinner />
                     </Link>
                 </motion.div>
+            </div>
+        </section>
+    );
+}
+
+function UseCases() {
+    const cases = [
+        {
+            icon: <School className="w-6 h-6 text-[#DFFF00]" />,
+            title: "The Campus Hustle",
+            desc: "Working on a school library computer? Need a pic from your phone to your slide deck? Don't email yourself. Just Drop it."
+        },
+        {
+            icon: <Share2 className="w-6 h-6 text-[#DFFF00]" />,
+            title: "The Group Project",
+            desc: "iPhone, Android, Windows laptop... doesn't matter. Everyone joins the same room. Anyone can send. Anyone can receive."
+        },
+        {
+            icon: <MessageSquare className="w-6 h-6 text-[#DFFF00]" />,
+            title: "Built-in Coordination",
+            desc: "Stop switching apps to say 'Send the textbook'. Use session notes to coordinate file swaps right where the files are."
+        }
+    ];
+
+    return (
+        <section id="use-cases" className="py-20 relative border-t border-b" style={{ borderColor: TOKENS.line, background: "rgba(255,255,255,0.02)" }}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-20">
+                <SectionHeader
+                    title="Built for moments like this"
+                    subtitle=" When AirDrop isn’t available and Drive feels like overhead, LazyDrop is instant."
+                />
+                <div className="grid md:grid-cols-3 gap-8">
+                    {cases.map((c, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.1 }}
+                            className="flex flex-col gap-4"
+                        >
+                            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-2">
+                                {c.icon}
+                            </div>
+                            <h3 className={`${heading.className} text-xl font-bold text-white`}>{c.title}</h3>
+                            <p className={`${body.className} text-gray-400 text-sm leading-relaxed`}>{c.desc}</p>
+                        </motion.div>
+                    ))}
+                </div>
             </div>
         </section>
     );
@@ -556,10 +607,6 @@ function Features() {
     );
 }
 
-// ---------- Pricing
-// ... inside app/page.jsx ...
-
-// inside app/page.jsx
 
 function Pricing() {
     const plans = [
@@ -618,7 +665,7 @@ function FAQ() {
     const faqs = [
         { q: "Do I need an account?", a: "No. Free drops work instantly. Create an account only if you want history, larger files, and Plus features." },
         { q: "Is it secure?", a: "Transfers use encrypted, signed links and sessions expire automatically. Simple, fast, and secure by design." },
-        { q: "What’s the file size limit?", a: "Free: up to 100MB per file. Plus: up to 2GB per file." },
+        { q: "What’s the file size limit?", a: "Free: up to 100MB per file. Plus: up to 1GB. Pro: up to 2GB." },
         { q: "Can I cancel Plus?", a: "Anytime. No contracts." },
     ];
 
@@ -763,6 +810,7 @@ export default function Home() {
         <div className={`${body.className} min-h-screen`} style={{ background: TOKENS.bg, color: TOKENS.text }}>
             <Navbar />
             <Hero />
+            <UseCases/>
             <BentoHowItWorks />
             <Features />
             <Pricing />

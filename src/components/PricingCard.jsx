@@ -84,7 +84,7 @@ export default function PricingCard({ plan, loading, onCheckout, isCurrent, isPa
                     </button>
                 ) : plan.price === "0" ? (
                     <Link href="/drop" className="block w-full py-5 rounded-2xl border border-white/20 text-white hover:bg-white hover:text-black font-bold text-lg text-center transition-all">
-                        Start Free
+                        Start Dropping
                     </Link>
                 ) : (
                     <button

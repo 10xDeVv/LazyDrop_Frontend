@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { api, ApiError } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import PricingCard from "@/components/PricingCard";
 import { Space_Grotesk, Inter } from "next/font/google";
-import { Zap } from "lucide-react";
+import { Zap, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 const heading = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], display: "swap" });
@@ -20,6 +21,7 @@ const TOKENS = {
     lime: "#DFFF00",
 };
 
+// Normalize backend plan codes to UI keys
 const normalizePlanCode = (p) => {
     const x = String(p || "").toUpperCase();
     if (x === "PRO") return "PRO";
@@ -32,7 +34,7 @@ export default function PricingPage() {
     const supabase = createClient();
 
     const [loadingPlan, setLoadingPlan] = useState(null);
-    const [currentPlanCode, setCurrentPlanCode] = useState("FREE");
+    const [currentPlanCode, setCurrentPlanCode] = useState(null); // null = Guest, otherwise FREE/PLUS/PRO
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
@@ -41,7 +43,7 @@ export default function PricingPage() {
 
             if (!session) {
                 setIsLoggedIn(false);
-                setCurrentPlanCode("FREE");
+                setCurrentPlanCode(null); // Explicitly null for guest
                 return;
             }
 
@@ -51,26 +53,24 @@ export default function PricingPage() {
                 const sub = await api.getMySubscription();
                 setCurrentPlanCode(normalizePlanCode(sub?.planCode));
             } catch {
-                // If sub fetch fails, keep FREE in UI but user is still logged in
+                // If fetching sub fails but we have a session, assume Free tier
                 setCurrentPlanCode("FREE");
             }
         };
 
         init();
-    }, [supabase]);
+    }, []);
 
     const handleCheckout = async (planType) => {
-        const plan = normalizePlanCode(planType);
-
-        // Better UX: if not logged in, route them before calling backend
+        // If guest tries to click a paid plan, send to signup
         if (!isLoggedIn) {
             router.push(`/signup?redirect=${encodeURIComponent("/pricing")}`);
             return;
         }
 
-        setLoadingPlan(plan);
+        setLoadingPlan(planType);
         try {
-            const { url } = await api.createCheckoutSession(plan);
+            const { url } = await api.createCheckoutSession(planType);
             window.location.href = url;
         } catch (err) {
             if (err instanceof ApiError && err.status === 401) {
@@ -83,21 +83,32 @@ export default function PricingPage() {
         }
     };
 
+    const handleFreeAction = () => {
+        if (isLoggedIn) {
+            // Already have an account? Go drop.
+            router.push("/drop");
+        } else {
+            // Guest? Create the account.
+            router.push("/signup");
+        }
+    };
+
     const plans = [
         {
-            name: "Casual",
-            planKey: "FREE", // ✅ was "casual"
+            name: "Free", // Renamed from Casual
+            planKey: "FREE",
             price: "0",
-            description: "For the occasional drop.",
+            description: "Free with account.",
             features: [
                 "100 MB per file limit",
                 "15 min Session Duration",
                 "5 Files per Session",
                 "Standard Speed",
-                "No Signup Required",
+                "Transfer History", // Key differentiator from Guest
             ],
-            cta: "Start Free",
-            href: "/drop",
+            // Dynamic CTA based on Auth state
+            cta: isLoggedIn ? "Start Dropping" : "Create Free Account",
+            onClick: handleFreeAction,
             popular: false,
         },
         {
@@ -139,10 +150,14 @@ export default function PricingPage() {
             <Navbar />
 
             <main className="flex-1 pt-32 pb-24 overflow-hidden relative">
+
+                {/* Background Glow */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#DFFF00]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
 
                 <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-10">
-                    <div className="text-center mb-16 max-w-3xl mx-auto px-4">
+
+                    {/* Header */}
+                    <div className="text-center mb-10 max-w-3xl mx-auto px-4">
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -171,19 +186,44 @@ export default function PricingPage() {
                         </motion.p>
                     </div>
 
+                    {/* Guest Limitations Callout - The "No Account" Section */}
+                    {!isLoggedIn && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="max-w-2xl mx-auto text-center mb-12"
+                        >
+                            <div className="inline-block p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                                <p className="text-sm text-gray-400 leading-relaxed">
+                                    <span className="text-white font-bold flex items-center justify-center gap-2 mb-1">
+                                        <AlertCircle size={14} className="text-[#DFFF00]" /> No account? No problem.
+                                    </span>
+                                    You can still drop instantly as a Guest. <br className="hidden sm:block" />
+                                    Guest limits: 25MB file size, 10 min expiry, 1 active session.
+                                    <Link href="/drop" className="ml-2 text-[#DFFF00] hover:underline font-medium">
+                                        Drop as Guest &rarr;
+                                    </Link>
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Pricing Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-32 w-full place-items-center items-stretch">
                         {plans.map((plan, i) => (
                             <motion.div
                                 key={plan.name}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 + i * 0.1 }}
+                                transition={{ delay: 0.3 + (i * 0.1) }}
                                 className="w-full flex justify-center h-full"
                             >
                                 <div className="w-full max-w-lg lg:max-w-none h-full">
                                     <PricingCard
                                         plan={plan}
-                                        isCurrent={isLoggedIn && normalizePlanCode(currentPlanCode) === plan.planKey}
+                                        // isCurrent is ONLY true if logged in AND plan matches
+                                        isCurrent={isLoggedIn && currentPlanCode === plan.planKey}
                                         loading={loadingPlan === plan.planKey}
                                         onCheckout={plan.onClick}
                                     />
@@ -195,16 +235,18 @@ export default function PricingPage() {
                     {/* FAQ Section */}
                     <div className="max-w-4xl mx-auto px-4">
                         <div className="text-center mb-12">
-                            <h2 className={`${heading.className} text-3xl font-bold mb-4`}>Frequently asked questions</h2>
+                            <h2 className={`${heading.className} text-3xl font-bold mb-4`}>
+                                Frequently asked questions
+                            </h2>
                             <p className="text-gray-400">Quick answers. Then go drop files.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {[
-                                { q: "Can I cancel anytime?", a: "Yes! Cancel anytime from your account page. No contracts." },
-                                { q: "What happens to my files?", a: "Files are deleted automatically when the session ends. We don’t keep them permanently." },
-                                { q: "Do you offer refunds?", a: "If you run into issues, reach out and we’ll help." },
-                                { q: "Is it secure?", a: "Transfers use encryption in transit (TLS) and sessions expire automatically for privacy." }, // ✅ safer claim
+                                { q: "Can I cancel anytime?", a: "Yes! Cancel anytime from your account dashboard. No contracts, no hassle." },
+                                { q: "What happens to my files?", a: "Files are automatically deleted after the session expires. We don't store them permanently." },
+                                { q: "Do you offer refunds?", a: "We offer a 7-day money-back guarantee if you're not satisfied." },
+                                { q: "Is it secure?", a: "Yes. All transfers are encrypted end-to-end via TLS. We don't peek at your files." },
                             ].map((faq, i) => (
                                 <motion.div
                                     key={i}
@@ -219,6 +261,7 @@ export default function PricingPage() {
                             ))}
                         </div>
                     </div>
+
                 </div>
             </main>
         </div>

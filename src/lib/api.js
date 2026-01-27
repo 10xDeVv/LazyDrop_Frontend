@@ -2,7 +2,6 @@ import { getSupabaseAccessToken } from "@/lib/auth-token";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1")
     .replace(/\/+$/, "");
-console.log("API URL:", API_BASE_URL);
 
 export class ApiError extends Error {
     constructor(message, { status, code, details, url } = {}) {

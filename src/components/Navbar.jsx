@@ -1,12 +1,12 @@
 "use client";
 
-import {useState, useEffect, useRef, memo, useMemo} from "react";
+import { useState, useEffect, useRef, memo, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Menu, X, ArrowRight, Zap, LayoutDashboard,
-    User, LogOut, Link as LinkIcon, LogIn, XCircle, ChevronDown, Settings,
+    User, LogOut, Link as LinkIcon, LogIn, XCircle, ChevronDown, Settings, LayoutGrid, Download, CreditCard
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { useApp } from "@/context/LazyDropContext";
@@ -21,28 +21,9 @@ function NavbarComponent() {
     const pathname = usePathname();
     const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
-
     const profileRef = useRef(null);
-    useEffect(() => {
-        const update = () => setHash(window.location.hash || "");
-        update();
-        window.addEventListener("hashchange", update);
-        return () => window.removeEventListener("hashchange", update);
-    }, []);
 
-    const isActive = (href) => {
-        if (href.startsWith("/#")) {
-            const targetHash = href.replace("/", "");
-            return pathname === "/" && hash === targetHash;
-        }
-
-        return pathname === href;
-    };
-
-
-    // Safe Context Usage
-    // We only need leaveRoom. Using a selector pattern would be better performance-wise,
-    // but React.memo on the component helps enough here.
+    // --- CONTEXT ---
     const appContext = useApp();
     const leaveRoom = appContext?.leaveRoom;
     const showToast = appContext?.showToast;
@@ -51,6 +32,7 @@ function NavbarComponent() {
     const isLanding = pathname === "/";
     const isSession = pathname?.startsWith("/session");
     const isAuthPage = pathname?.startsWith("/login") || pathname?.startsWith("/signup");
+    const isApp = !isLanding && !isSession && !isAuthPage;
 
     // --- 2. AUTH & SCROLL LOGIC ---
     useEffect(() => {
@@ -61,8 +43,6 @@ function NavbarComponent() {
         checkAuth();
 
         const handleScroll = () => setIsScrolled(window.scrollY > 20);
-
-        // Only attach scroll listener if NOT in session (session usually fixed height)
         if (!isSession) window.addEventListener("scroll", handleScroll);
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -81,7 +61,23 @@ function NavbarComponent() {
             document.removeEventListener("mousedown", handleClickOutside);
             subscription.unsubscribe();
         };
-    }, [isSession]);
+    }, [isSession, supabase]);
+
+    // HASH LISTENER (For landing page scroll spy)
+    useEffect(() => {
+        const update = () => setHash(window.location.hash || "");
+        update();
+        window.addEventListener("hashchange", update);
+        return () => window.removeEventListener("hashchange", update);
+    }, []);
+
+    const isActive = (href) => {
+        if (href.startsWith("/#")) {
+            const targetHash = href.replace("/", "");
+            return pathname === "/" && hash === targetHash;
+        }
+        return pathname === href;
+    };
 
     // Close menus on route change
     useEffect(() => {
@@ -108,40 +104,47 @@ function NavbarComponent() {
     };
 
     const handleExitSession = async () => {
-        // if (isSession && leaveRoom) {
-        //     await leaveRoom();
-        // }
+        if (isSession && leaveRoom) {
+            await leaveRoom();
+        }
         router.push("/dashboard");
     };
 
-    // --- 4. NAVIGATION CONFIG ---
-    const logoLink = "/";
 
     const landingLinks = [
         { name: "How it works", href: "/#how-it-works" },
         { name: "Features", href: "/#features" },
         { name: "Pricing", href: "/#pricing" },
+        { name: "Why LazyDrop", href: "/#pricing" },
     ];
 
     const appLinks = [
         { name: "Drop", href: "/drop" },
-        { name: "Receive", href: "/join" },
+        { name: "Join", href: "/join" },
         { name: "Pricing", href: "/pricing" },
     ];
 
     const middleLinks = isSession ? [] : (isLanding ? landingLinks : appLinks);
 
-    // --- SUB-COMPONENT: PROFILE DROPDOWN ---
-    // Defined inside to access state/handlers, but structurally simple
-    const renderProfileDropdown = () => (
+    const renderUnifiedDropdown = () => (
         <div className="relative z-50" ref={profileRef}>
             <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className={`flex items-center gap-3 pl-2 pr-4 py-1.5 rounded-full border transition-colors ${isSession ? "border-white/10 bg-[#16181D] hover:bg-white/5" : "border-white/10 hover:bg-white/5"}`}
+                className={`flex items-center gap-3 pl-2 pr-4 py-1.5 rounded-full border transition-colors ${
+                    isSession ? "border-white/10 bg-[#16181D] hover:bg-white/5" : "border-white/10 hover:bg-white/5"
+                }`}
             >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#DFFF00] to-orange-400 flex items-center justify-center text-black font-bold text-xs uppercase">
-                    {user?.email?.charAt(0) || "U"}
-                </div>
+                {user ? (
+                    // User Avatar
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#DFFF00] to-orange-400 flex items-center justify-center text-black font-bold text-xs uppercase">
+                        {user.email?.charAt(0) || "U"}
+                    </div>
+                ) : (
+                    // Guest Avatar
+                    <div className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white font-bold text-xs uppercase">
+                        G
+                    </div>
+                )}
                 <ChevronDown size={14} className={`text-gray-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
             </button>
 
@@ -154,23 +157,52 @@ function NavbarComponent() {
                         transition={{ duration: 0.1 }}
                         className="absolute right-0 top-full mt-2 w-64 bg-[#16181D] border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 z-[100]"
                     >
+                        {/* Header */}
                         <div className="px-4 py-3 border-b border-white/5 mb-2">
-                            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Signed in as</p>
-                            <p className="text-sm text-white truncate font-medium">{user.email}</p>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">
+                                {user ? "Signed in as" : "Guest Mode"}
+                            </p>
+                            <p className={`text-sm truncate font-medium ${user ? "text-white" : "text-gray-400"}`}>
+                                {user ? user.email : "Anonymous User"}
+                            </p>
                         </div>
 
+                        {/* PRODUCT NAVIGATION (Visible to Everyone) */}
                         <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
                             <LayoutDashboard size={16} /> Dashboard
                         </Link>
-                        <Link href="/account" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
-                            <Settings size={16} /> Account
+                        <Link href="/drop" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                            <Zap size={16} /> Drop File
+                        </Link>
+                        <Link href="/join" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                            <Download size={16} /> Join Session
+                        </Link>
+                        <Link href="/pricing" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                            <CreditCard size={16} /> Pricing
                         </Link>
 
                         <div className="h-px bg-white/5 my-2" />
 
-                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left">
-                            <LogOut size={16} /> Sign Out
-                        </button>
+                        {/* ACCOUNT / AUTH ACTIONS */}
+                        {user ? (
+                            <>
+                                <Link href="/account" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                                    <Settings size={16} /> Account
+                                </Link>
+                                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left">
+                                    <LogOut size={16} /> Sign Out
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link href="/login" className="flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors">
+                                    <LogIn size={16} /> Log In
+                                </Link>
+                                <Link href="/signup" className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#DFFF00] hover:bg-[#DFFF00]/10 transition-colors font-bold">
+                                    <ArrowRight size={16} /> Create Account
+                                </Link>
+                            </>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -191,16 +223,16 @@ function NavbarComponent() {
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 
                     {/* A. LOGO */}
-                    <Link href={logoLink} className="flex items-center gap-2 group z-50 relative">
+                    <Link href={"/"} className="flex items-center gap-2 group z-50 relative">
                         <div className="w-8 h-8 bg-[#DFFF00] rounded-lg flex items-center justify-center text-black font-bold text-xl group-hover:rotate-12 transition-transform shadow-[0_0_15px_rgba(223,255,0,0.3)]">
                             <Zap size={18} fill="black" />
                         </div>
                         <span className="font-bold text-xl tracking-tight text-white group-hover:text-[#DFFF00] transition-colors">
-                            LazyDrop
+                            Lazydrop
                         </span>
                     </Link>
 
-                    {/* B. MIDDLE LINKS (Hidden in Session) */}
+                    {/* B. MIDDLE LINKS (Desktop only, hidden in Session) */}
                     <div className="hidden md:flex items-center gap-8">
                         {middleLinks.map((link) => (
                             <Link
@@ -217,16 +249,11 @@ function NavbarComponent() {
                     {/* C. RIGHT ACTIONS */}
                     <div className="hidden md:flex items-center gap-4">
 
-                        {/* 1. SESSION MODE */}
+                        {/* MODE 1: SESSION */}
                         {isSession ? (
                             <>
-                                {user && renderProfileDropdown()}
-                                <button
-                                    onClick={handleCopyLink}
-                                    className="px-4 py-2.5 bg-white/5 border border-white/10 text-gray-300 rounded-xl font-bold text-sm hover:bg-white/10 transition flex items-center gap-2"
-                                >
-                                    <LinkIcon size={16} /> Copy
-                                </button>
+                                {/* Show Dropdown for Everyone in Session */}
+                                {renderUnifiedDropdown()}
 
                                 <button
                                     onClick={handleExitSession}
@@ -236,45 +263,30 @@ function NavbarComponent() {
                                 </button>
                             </>
                         ) : (
-                            /* 2. APP / LANDING MODE */
-                            <>
-                                {isLanding ? (
-                                    /* LANDING SPECIFIC */
-                                    user ? (
-                                        <button
-                                            onClick={handleLaunchApp}
-                                            className="px-5 py-2.5 bg-[#DFFF00] text-black rounded-full font-bold text-sm hover:bg-[#ccee00] shadow-lg transition-all flex items-center gap-2"
-                                        >
-                                            Launch App <ArrowRight size={16} />
-                                        </button>
-                                    ) : (
-                                        <>
-                                            <Link href="/login" className="text-sm font-bold text-white hover:text-[#DFFF00] transition-colors">
-                                                Log In
-                                            </Link>
-                                            <Link href="/signup" className="px-6 py-2.5 bg-white text-black rounded-full font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2">
-                                                Get Started
-                                            </Link>
-                                        </>
-                                    )
+                            /* MODE 2: NON-SESSION */
+                            isLanding ? (
+                                /* LANDING: Marketing CTA */
+                                user ? (
+                                    <button
+                                        onClick={handleLaunchApp}
+                                        className="px-5 py-2.5 bg-[#DFFF00] text-black rounded-full font-bold text-sm hover:bg-[#ccee00] shadow-lg transition-all flex items-center gap-2"
+                                    >
+                                        Launch App <ArrowRight size={16} />
+                                    </button>
                                 ) : (
-                                    /* APP SPECIFIC (Auth & Guest) */
-                                    user ? (
-                                        renderProfileDropdown()
-                                    ) : (
-                                        <>
-                                            {!isAuthPage && (
-                                                <Link href="/login" className="text-sm font-bold text-white hover:text-[#DFFF00] transition-colors">
-                                                    Log In
-                                                </Link>
-                                            )}
-                                            <Link href="/signup" className="px-6 py-2.5 bg-white text-black rounded-full font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2">
-                                                Get Started
-                                            </Link>
-                                        </>
-                                    )
-                                )}
-                            </>
+                                    <>
+                                        <Link href="/login" className="text-sm font-bold text-white hover:text-[#DFFF00] transition-colors">
+                                            Log In
+                                        </Link>
+                                        <Link href="/signup" className="px-6 py-2.5 bg-white text-black rounded-full font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2">
+                                            Get Started
+                                        </Link>
+                                    </>
+                                )
+                            ) : (
+                                /* APP PAGES (Dashboard, Drop, Pricing, etc.) -> ALWAYS DROPDOWN */
+                                renderUnifiedDropdown()
+                            )
                         )}
                     </div>
 
@@ -306,11 +318,12 @@ function NavbarComponent() {
                                     <Link href="/dashboard" className="text-2xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
                                         Dashboard
                                     </Link>
-                                    {user && (
-                                        <Link href="/account" className="text-2xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
-                                            Account
-                                        </Link>
-                                    )}
+                                    <Link href="/account" className="text-2xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
+                                        Account
+                                    </Link>
+
+                                    <div className="h-px bg-white/10 my-2" />
+
                                     <button onClick={handleExitSession} className="py-4 bg-red-500/20 text-red-300 rounded-xl font-bold text-center text-lg flex items-center justify-center gap-2">
                                         <XCircle size={18} /> Exit Session
                                     </button>
@@ -318,21 +331,27 @@ function NavbarComponent() {
                             ) : (
                                 /* Standard Links Mobile */
                                 <>
-                                    {middleLinks.map((link) => (
-                                        <Link key={link.name} href={link.href} className="text-3xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
-                                            {link.name}
-                                        </Link>
-                                    ))}
+                                    {/* Show Product Nav First (For Guests too) */}
+                                    <Link href="/dashboard" className="text-3xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
+                                        Dashboard
+                                    </Link>
+                                    <Link href="/drop" className="text-3xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
+                                        Drop
+                                    </Link>
+                                    <Link href="/join" className="text-3xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
+                                        Join
+                                    </Link>
+                                    <Link href="/pricing" className="text-3xl font-bold text-white" onClick={() => setIsMobileOpen(false)}>
+                                        Pricing
+                                    </Link>
 
                                     <div className="h-px bg-white/10 my-4" />
 
+                                    {/* Auth Actions */}
                                     {user ? (
                                         <>
-                                            <Link href="/dashboard" className="text-xl font-medium text-gray-300 flex items-center gap-3" onClick={() => setIsMobileOpen(false)}>
-                                                <LayoutDashboard size={20} /> Dashboard
-                                            </Link>
                                             <Link href="/account" className="text-xl font-medium text-gray-300 flex items-center gap-3" onClick={() => setIsMobileOpen(false)}>
-                                                <User size={20} /> Account
+                                                <Settings size={20} /> Account
                                             </Link>
                                             <button onClick={handleLogout} className="text-xl font-medium text-red-400 flex items-center gap-3 mt-4">
                                                 <LogOut size={20} /> Sign Out
@@ -342,7 +361,7 @@ function NavbarComponent() {
                                         <>
                                             <Link href="/login" className="text-xl font-bold text-white flex items-center gap-3"><LogIn size={20}/> Log In</Link>
                                             <Link href="/signup" className="py-4 bg-[#DFFF00] text-black rounded-xl font-bold text-center text-lg mt-4">
-                                                Get Started
+                                                Create Account
                                             </Link>
                                         </>
                                     )}

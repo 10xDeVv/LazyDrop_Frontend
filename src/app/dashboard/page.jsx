@@ -334,12 +334,6 @@ export default function Dashboard() {
                                     You aren't hosting or joined to any sessions right now.
                                 </p>
 
-                                {!user && (
-                                    <p className="text-xs text-gray-600">
-                                        Sign in to sync sessions across devices.
-                                    </p>
-                                )}
-
                                 <Link
                                     href="/drop"
                                     className="px-8 py-4 bg-[#DFFF00] text-black font-bold rounded-xl hover:bg-[#ccee00] transition shadow-lg flex items-center gap-2"
