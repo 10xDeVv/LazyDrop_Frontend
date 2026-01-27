@@ -8,6 +8,7 @@ import {
     Menu, X, ArrowRight, Zap, LayoutDashboard,
     User, LogOut, Link as LinkIcon, LogIn, XCircle, ChevronDown, Settings, LayoutGrid, Download, CreditCard
 } from "lucide-react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase";
 import { useApp } from "@/context/LazyDropContext";
 
@@ -115,7 +116,7 @@ function NavbarComponent() {
         { name: "How it works", href: "/#how-it-works" },
         { name: "Features", href: "/#features" },
         { name: "Pricing", href: "/#pricing" },
-        { name: "Why LazyDrop", href: "/#pricing" },
+        { name: "Why LazyDrop", href: "/#use-cases" },
     ];
 
     const appLinks = [
@@ -238,12 +239,21 @@ function NavbarComponent() {
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 
                     {/* A. LOGO */}
-                    <Link href={"/"} className="flex items-center gap-2 group z-50 relative">
-                        <div className="w-8 h-8 bg-[#DFFF00] rounded-lg flex items-center justify-center text-black font-bold text-xl group-hover:rotate-12 transition-transform shadow-[0_0_15px_rgba(223,255,0,0.3)]">
-                            <Zap size={18} fill="black" />
-                        </div>
+                    <Link href={"/"} className="flex items-center gap-3 group z-50 relative">
+                        {/* Animated Container for Logo */}
+                            {/* Insert your actual logo image here */}
+                            {/* Ensure you have /public/logo.png or similar */}
+                            <Image
+                                src="/logo.png"
+                                alt="LazyDrop"
+                                width={24}
+                                height={24}
+                                className="w-8 h-8 object-contain"
+                            />
+
+                        {/* Wordmark */}
                         <span className="font-bold text-xl tracking-tight text-white group-hover:text-[#DFFF00] transition-colors">
-                            Lazydrop
+                            LazyDrop
                         </span>
                     </Link>
 

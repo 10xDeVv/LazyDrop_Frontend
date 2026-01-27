@@ -708,10 +708,14 @@ function Footer() {
                     <div className="flex flex-col items-start justify-between">
                         <div>
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 bg-[#DFFF00] rounded-xl flex items-center justify-center text-black font-bold">
-                                    <Zap size={20} fill="black" />
+                                <div className="w-17 h-17 relative">
+                                    <Image
+                                        src="/logo.png"
+                                        alt="LazyDrop"
+                                        fill
+                                        className="object-contain rounded-xl"
+                                    />
                                 </div>
-                                <span className={`${heading.className} font-bold text-2xl text-white`}>LazyDrop</span>
                             </div>
                             <p className={`${body.className} text-gray-400 text-sm leading-relaxed max-w-sm mb-10`}>
                                 The simplest way to move files between devices. No drive, no clutter—just fast, secure transfer sessions.
