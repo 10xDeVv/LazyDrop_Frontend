@@ -826,79 +826,36 @@ export default function InstantShareProvider({ children }) {
           setFiles((prev) => [...prev, localFileObj]);
 
           try {
-            // ✅ backend: POST /sessions/{id}/files/upload-url
-            const { signedUrl, objectPath } = await api.requestUpload(currentSession.id, {
-              fileName: file.name,
-              contentType: file.type || "application/octet-stream",
-              fileSize: file.size,
-            });
-
-            const xhr = new XMLHttpRequest();
-
-            xhr.upload.addEventListener("progress", (e) => {
-              if (e.lengthComputable) {
-                const progress = (e.loaded / e.total) * 100;
+            // ✅ Upload through backend proxy (avoids Spaces CORS)
+            const meta = await api.uploadFile(currentSession.id, file, {
+              onProgress: (progress) => {
                 setFiles((prev) =>
                     prev.map((f) => (f.id === tempId ? { ...f, progress } : f))
                 );
-              }
+              },
             });
 
-            xhr.addEventListener("load", async () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                  const meta = await api.confirmUpload(currentSession.id, {
-                    objectPath,
-                    originalName: file.name,
-                    sizeBytes: file.size,
-                  });
+            setFiles((prev) =>
+                prev.map((f) =>
+                    f.id === tempId
+                        ? {
+                          ...f,
+                          id: meta.id,
+                          status: "uploaded",
+                          progress: 100,
+                          serverFileId: meta.id,
+                        }
+                        : f
+                )
+            );
 
-                  setFiles((prev) =>
-                      prev.map((f) =>
-                          f.id === tempId
-                              ? {
-                                ...f,
-                              id: meta.id,
-                                status: "uploaded",
-                                progress: 100,
-                                serverFileId: meta.id,
-                              }
-                              : f
-                      )
-                  );
-
-                  busRef.current.emit("fileUploaded", {
-                    id: meta.id,
-                    name: file.name,
-                    size: file.size,
-                  });
-
-                  showToast(`${file.name} sent successfully`);
-                } catch (confirmError) {
-                  console.error("Failed to confirm upload:", confirmError);
-                  setFiles((prev) =>
-                      prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
-                  );
-                  showToast(`Failed to confirm ${file.name}`, "error");
-                }
-              } else {
-                setFiles((prev) =>
-                    prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
-                );
-                  handleApiError({ status: xhr.status, message: `Failed to upload ${file.name}` }, `Failed to upload ${file.name}`);
-              }
+            busRef.current.emit("fileUploaded", {
+              id: meta.id,
+              name: file.name,
+              size: file.size,
             });
 
-            xhr.addEventListener("error", () => {
-              setFiles((prev) =>
-                  prev.map((f) => (f.id === tempId ? { ...f, status: "error" } : f))
-              );
-                handleApiError({ status: xhr.status || 0, message: `Failed to upload ${file.name}` }, `Failed to upload ${file.name}`);
-            });
-
-            xhr.open("PUT", signedUrl);
-            xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-            xhr.send(file);
+            showToast(`${file.name} sent successfully`);
           } catch (error) {
             console.error("Upload failed:", error);
             setFiles((prev) =>

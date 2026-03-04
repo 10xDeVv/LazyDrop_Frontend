@@ -190,6 +190,50 @@ export class ApiService {
         });
     }
 
+    /** Upload file through the backend (proxied to Spaces — avoids bucket CORS). */
+    uploadFile(sessionId, file, { onProgress } = {}) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                let accessToken = null;
+                if (typeof this.getAccessToken === "function") {
+                    accessToken = await this.getAccessToken();
+                }
+
+                const xhr = new XMLHttpRequest();
+
+                if (onProgress) {
+                    xhr.upload.addEventListener("progress", (e) => {
+                        if (e.lengthComputable) onProgress(e.loaded / e.total * 100);
+                    });
+                }
+
+                xhr.addEventListener("load", () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try { resolve(JSON.parse(xhr.responseText)); }
+                        catch { resolve(null); }
+                    } else {
+                        reject(new ApiError(`Upload failed (${xhr.status})`, { status: xhr.status }));
+                    }
+                });
+
+                xhr.addEventListener("error", () => {
+                    reject(new ApiError("Upload network error", { status: 0 }));
+                });
+
+                const url = `${this.baseUrl}/sessions/${sessionId}/files/upload`;
+                xhr.open("POST", url);
+                xhr.withCredentials = true;
+                if (accessToken) xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+                xhr.send(formData);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     confirmUpload(sessionId, body) {
         return this.request(`/sessions/${sessionId}/files/confirm`, {
             method: "POST",
